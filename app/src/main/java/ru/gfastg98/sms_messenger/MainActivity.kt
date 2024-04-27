@@ -54,8 +54,16 @@ import java.util.Locale
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    enum class Destinations{
+    enum class ROUTS(val r : String){
+        USERS("users"), MESSAGES("messages");
 
+
+        fun String.to(s: String): String{
+            return "$this/$s"
+        }
+        fun ROUTS.to(s: String): String{
+            return "${this.r}/$s"
+        }
     }
 
     private val viewModel: MessengerViewModel by viewModels()
@@ -88,8 +96,10 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         startDestination = "users"
                     ) {
-                        composable("users") { UsersScreen(modifier) }
-                        composable("messages") { MessagesScreen(modifier) }
+                        composable(ROUTS.USERS.r) { UsersScreen(viewModel, modifier) }
+                        composable(ROUTS.MESSAGES.r + "/{userId}") {navBackStack ->
+
+                            MessagesScreen(navBackStack.arguments?.getLong("userId"), modifier) }
                     }
                 }
             }
@@ -103,7 +113,7 @@ class MainActivity : ComponentActivity() {
     )
     @Composable
     fun ScreenPreview() {
-        MessagesScreen(Modifier)
+        MessagesScreen(0, Modifier)
     }
 
     @Preview(
@@ -171,98 +181,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    fun UserCard(
-        modifier: Modifier,
-        user: User,
-        lastMessage : Message
-    ) {
-        Row(
-            modifier = modifier
-                .wrapContentSize()
-                .fillMaxWidth()
-                .padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
 
-                Box(
-                    modifier = Modifier
-                        .background(user.color)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                    ) {
-                    Text(text = user.name.run {
-                        val x = uppercase().split(" ")
-                        x.joinToString(separator = "") { s -> s[0].toString() }
-                    })
-                }
-            }
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = user.name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
 
-                Row (horizontalArrangement = Arrangement.spacedBy(8.dp)) {
 
-                    Text(
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Bold,
-                        fontStyle = FontStyle.Italic,
-                        text = /*if (DateUtils.isToday(lastMessage.datetime.time))
-                            SimpleDateFormat("h:mm", Locale.ROOT).format(lastMessage.datetime)
-                        else
-                            SimpleDateFormat("dd.MM.yyyy", Locale.ROOT).format(lastMessage.datetime)*/
-                        if (lastMessage.datetime.isToday())
-                            SimpleDateFormat("HH:mm", Locale.ROOT).format(lastMessage.datetime)
-                        else SimpleDateFormat("dd.MM.yyyy", Locale.ROOT).format(lastMessage.datetime)
 
-                    )
-                    Text(
-                        text = lastMessage.text,
-                        color = Color.Gray,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 2)
-                }
-            }
-        }
-    }
+}
 
-    @Composable
-    private fun UsersScreen(modifier: Modifier) {
-
-        val users by viewModel.users.collectAsState(initial = emptyList())
-
-        LazyColumn(modifier) {
-            items(users.size){
-
-            }
-        }
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun MessagesScreen(modifier: Modifier) {
-
-        //val messages by viewModel.table.collectAsState(initial = emptyMap())
-
-        LazyColumn(modifier = modifier){
-
-        }
-    }
-
-    fun Date.isToday() : Boolean{
-        return date == Date().date &&
-                month == Date().month &&
-                year == Date().year
-    }
+fun Date.isToday() : Boolean{
+    return date == Date().date &&
+            month == Date().month &&
+            year == Date().year
 }
