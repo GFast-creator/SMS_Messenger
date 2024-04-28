@@ -42,12 +42,12 @@ class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : Vie
         Instance.users = doCommand(Command.GET_USERS)
     }*/
 
-    @Suppress("Unchecked cast")
+    @Suppress("UNCHECKED_CAST")
     fun <T> doCommand (command: Command, data: Any? = null) : T? {
         when(command){
             Command.GET_USERS -> return _dao.getUsers() as T
             Command.GET_MESSAGES -> return _dao.getMessages(data as Int) as T
-            Command.GET_LAST_MESSAGE -> return _dao.getLastMessages(data as Int) as T
+            Command.GET_LAST_MESSAGE -> return _dao.getLastMessages() as T
 
             Command.INSERT_USER -> viewModelScope.launch { _dao.insertUser(data as User)}
             Command.DELETE_USER -> viewModelScope.launch { _dao.deleteUser(data as User)}

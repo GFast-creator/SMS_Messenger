@@ -135,8 +135,12 @@ interface MessageDao {
     @Query("SELECT * FROM messages where userId = :userId")
     fun getMessages(userId : Int) : Flow<List<Message>>
 
-    @Query("SELECT * FROM messages where userId = :userId ORDER BY datetime LIMIT 1 ")
-    fun getLastMessages(userId : Int) : Flow<List<Message>>
+    //@Query("SELECT * FROM users LEFT JOIN messages on (users.id = messages.userId) where  ORDER BY datetime LIMIT 1 ")
+    @Query("select messages.* " +
+            "from messages, (select userId, max(datetime) as d from messages group by userId) as max_user " +
+            "where messages.userId=max_user.userId " +
+            "and messages.datetime = max_user.d;")
+    fun getLastMessages() : Flow<List<Message>>
 
     @Delete
     suspend fun deleteUser(vararg user: User)

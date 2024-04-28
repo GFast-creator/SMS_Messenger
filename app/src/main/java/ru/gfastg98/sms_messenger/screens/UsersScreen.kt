@@ -1,4 +1,4 @@
-package ru.gfastg98.sms_messenger
+package ru.gfastg98.sms_messenger.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.flow.Flow
+import ru.gfastg98.sms_messenger.Message
+import ru.gfastg98.sms_messenger.MessengerViewModel
+import ru.gfastg98.sms_messenger.User
+import ru.gfastg98.sms_messenger.isToday
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -34,21 +39,30 @@ fun UsersScreen(
     modifier: Modifier
 ) {
 
-    val users by viewModel.users.collectAsState(initial = emptyList())
+    val users by viewModel
+        .doCommand<Flow<List<User>>>(MessengerViewModel.Command.GET_USERS)!!
+        .collectAsState(initial = emptyList())
+
+    val lastMessages by viewModel
+        .doCommand<Flow<List<Message>>>(MessengerViewModel.Command.GET_LAST_MESSAGE)!!
+        .collectAsState(initial = emptyList())
 
 
     LazyColumn(modifier) {
         items(users.size) {index ->
-            UserCard(modifier = Modifier, user = users[index], lastMessage = )
+            UserCard(
+                user = users[index],
+                lastMessage = lastMessages.find { m -> m.userId == users[index].id }
+            )
         }
     }
 }
 
 @Composable
 fun UserCard(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     user: User,
-    lastMessage: Message
+    lastMessage: Message?
 ) {
     Row(
         modifier = modifier
@@ -85,16 +99,14 @@ fun UserCard(
                 fontSize = 20.sp
             )
 
+            if (lastMessage != null)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
 
                 Text(
                     color = Color.Gray,
                     fontWeight = FontWeight.Bold,
                     fontStyle = FontStyle.Italic,
-                    text = /*if (DateUtils.isToday(lastMessage.datetime.time))
-                            SimpleDateFormat("h:mm", Locale.ROOT).format(lastMessage.datetime)
-                        else
-                            SimpleDateFormat("dd.MM.yyyy", Locale.ROOT).format(lastMessage.datetime)*/
+                    text =
                     if (lastMessage.datetime.isToday())
                         SimpleDateFormat("HH:mm", Locale.ROOT).format(lastMessage.datetime)
                     else SimpleDateFormat("dd.MM.yyyy", Locale.ROOT).format(lastMessage.datetime)
