@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,7 +17,6 @@ import kotlinx.coroutines.flow.Flow
 import ru.gfastg98.sms_messenger.Message
 import ru.gfastg98.sms_messenger.MessengerViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessagesScreen(
     viewModel: MessengerViewModel,
@@ -31,7 +29,7 @@ fun MessagesScreen(
     }
 
     val messages by viewModel
-        .doCommand<Flow<List<Message>>>(MessengerViewModel.Command.GET_MESSAGES, userId)!!
+        .doCommand<Flow<List<Message>>>(MessengerViewModel.Commands.GET_MESSAGES, userId)!!
         .collectAsState(initial = emptyList())
 
     LazyColumn(modifier = modifier){

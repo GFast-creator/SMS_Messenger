@@ -17,6 +17,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -24,6 +26,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import ru.gfastg98.sms_messenger.screens.AddDialog
 import ru.gfastg98.sms_messenger.screens.MessageCard
 import ru.gfastg98.sms_messenger.screens.MessagesScreen
 import ru.gfastg98.sms_messenger.screens.UserCard
@@ -46,12 +49,22 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             SMSMessengerTheme {
+                val navController = rememberNavController()
+                val isDialog by viewModel.isDialogStateFlow.collectAsState()
+
+                if (isDialog){
+                    AddDialog(viewModel)
+                }
+
                 Scaffold(
                     topBar = {
                         TopAppBar(
                             title = { Text(stringResource(id = R.string.app_name)) },
                             actions = {
-                                IconButton(onClick = { /*TODO*/ }) {
+                                IconButton(
+                                    onClick = {
+                                        viewModel.doCommand<Nothing>(MessengerViewModel.Commands.SWITCH_DIALOG_ON)
+                                    }) {
                                     Icon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = null
@@ -63,13 +76,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     containerColor = MaterialTheme.colorScheme.background
                 ) { innerPadding ->
+
                     val modifier = Modifier.padding(innerPadding)
-
-                    val navController = rememberNavController()
-
+                    
                     NavHost(
                         navController = navController,
-                        startDestination = "users"
+                        startDestination = ROUTS.USERS.r
                     ) {
                         composable(ROUTS.USERS.r) { UsersScreen(viewModel, modifier) }
                         composable("${ROUTS.MESSAGES.r}/{userId}") { navBackStack ->

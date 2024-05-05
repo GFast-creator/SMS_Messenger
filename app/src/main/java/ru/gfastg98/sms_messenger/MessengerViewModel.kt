@@ -1,11 +1,8 @@
 package ru.gfastg98.sms_messenger
 
-import android.util.Log
-import androidx.lifecycle.DEFAULT_ARGS_KEY
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,11 +10,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : ViewModel() {
+open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : ViewModel() {
 
     private val TAG: String = MessengerViewModel::class.java.simpleName
 
-    enum class Command{
+    enum class Commands{
         GET_USERS, GET_MESSAGES, GET_LAST_MESSAGE,
 
         INSERT_USER, DELETE_USER,
@@ -26,7 +23,11 @@ class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : Vie
         SWITCH_DIALOG_ON,SWITCH_DIALOG_OFF
     }
 
+    val users
+        get() = _dao.getUsers()
+
     private val _isDialog = MutableStateFlow(false)
+
     val isDialogStateFlow: StateFlow<Boolean>
         get() = _isDialog.asStateFlow()
 
@@ -34,32 +35,22 @@ class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : Vie
         _isDialog.value = newState
     }
 
-    /*object Instance{
-        lateinit var users:Flow<List<User>>
-    }
-
-    init {
-        Instance.users = doCommand(Command.GET_USERS)
-    }*/
-
     @Suppress("UNCHECKED_CAST")
-    fun <T> doCommand (command: Command, data: Any? = null) : T? {
+    fun <T> doCommand (command: Commands, data: Any? = null) : T? {
         when(command){
-            Command.GET_USERS -> return _dao.getUsers() as T
-            Command.GET_MESSAGES -> return _dao.getMessages(data as Int) as T
-            Command.GET_LAST_MESSAGE -> return _dao.getLastMessages() as T
+            Commands.GET_USERS -> return _dao.getUsers() as T
+            Commands.GET_MESSAGES -> return _dao.getMessages(data as Int) as T
+            Commands.GET_LAST_MESSAGE -> return _dao.getLastMessages() as T
 
-            Command.INSERT_USER -> viewModelScope.launch { _dao.insertUser(data as User)}
-            Command.DELETE_USER -> viewModelScope.launch { _dao.deleteUser(data as User)}
+            Commands.INSERT_USER -> viewModelScope.launch { _dao.insertUser(data as User)}
+            Commands.DELETE_USER -> viewModelScope.launch { _dao.deleteUser(data as User)}
 
-            Command.INSERT_MESSAGE -> viewModelScope.launch { _dao.insertMessage(data as Message)}
-            Command.DELETE_MESSAGE -> viewModelScope.launch { _dao.deleteMessage(data as Message)}
+            Commands.INSERT_MESSAGE -> viewModelScope.launch { _dao.insertMessage(data as Message)}
+            Commands.DELETE_MESSAGE -> viewModelScope.launch { _dao.deleteMessage(data as Message)}
 
-            Command.SWITCH_DIALOG_ON -> _isDialog.value = true
-            Command.SWITCH_DIALOG_OFF -> _isDialog.value = false
-
+            Commands.SWITCH_DIALOG_ON -> _isDialog.value = true
+            Commands.SWITCH_DIALOG_OFF -> _isDialog.value = false
         }
-
         return null
     }
 }
