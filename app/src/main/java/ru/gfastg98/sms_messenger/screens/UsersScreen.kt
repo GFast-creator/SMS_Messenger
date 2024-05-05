@@ -1,7 +1,9 @@
 package ru.gfastg98.sms_messenger.screens
 
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,14 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,120 +28,157 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.flow.Flow
+import androidx.navigation.NavHostController
 import ru.gfastg98.sms_messenger.Message
 import ru.gfastg98.sms_messenger.MessengerViewModel
+import ru.gfastg98.sms_messenger.ROUTS
 import ru.gfastg98.sms_messenger.User
 import ru.gfastg98.sms_messenger.isToday
+import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun UsersScreen(
+    navController : NavHostController,
+    modifier: Modifier = Modifier,
     viewModel: MessengerViewModel = viewModel(),
-    modifier: Modifier
+    users : List<User>,
+    lastMessages: List<Message>,
+    deleteList: List<User>
 ) {
     Log.i("123123123", "UsersScreen: ")
-    val users by viewModel
-        //.doCommand<Flow<List<User>>>(MessengerViewModel.Commands.GET_USERS)!!
-        .users
-        .collectAsState(initial = emptyList())
-
-    val lastMessages by viewModel
-        .doCommand<Flow<List<Message>>>(MessengerViewModel.Commands.GET_LAST_MESSAGE)!!
-        .collectAsState(initial = emptyList())
-
-
+    //val viewModel : MessengerViewModel = viewModel()
 
     Log.i("1", "UsersScreen: ${users.size}")
     LazyColumn(
         modifier
-            .fillMaxSize()
+            .padding(horizontal = 8.dp)
+            .fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        item {
-            Text(text = "123")
-        }
-        items(users.size, key = { it }) {index ->
+        items(users.size, key = { it }) { index ->
             Log.i("1", "UsersScreen: ${users[index]}")
-            Text(text = users[index].name)
             UserCard(
+                modifier = Modifier.combinedClickable(
+                    onClick = {
+                        if (deleteList.isNotEmpty()) {
+                            if (users[index] !in deleteList) {
+                                viewModel.doCommand<Nothing>(
+                                    MessengerViewModel.Commands.DELETE_LIST_PLUS,
+                                    users[index]
+                                )
+                            } else {
+                                viewModel.doCommand<Nothing>(
+                                    MessengerViewModel.Commands.DELETE_LIST_MINUS,
+                                    users[index]
+                                )
+                            }
+                            viewModel.vibrate()
+                        } else {
+                            navController.navigate("${ROUTS.MESSAGES.r}/${users[index].id}")
+                        }
+                    },
+                    onLongClick = {
+                        if (deleteList.isEmpty()) {
+                            viewModel.doCommand<Nothing>(
+                                MessengerViewModel.Commands.DELETE_LIST_PLUS,
+                                users[index]
+                            )
+                            viewModel.vibrate()
+                        }
+                    }
+                ),
                 user = users[index],
-                lastMessage = lastMessages.find { m -> m.userId == users[index].id }
+                lastMessage = lastMessages.find { m -> m.userId == users[index].id },
+                selected = users[index] in deleteList
             )
         }
     }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 private fun UserCardPrev() {
-    UserCard(user = User(), lastMessage = null)
+    UserCard(user = User(), selected = true)
 }
 
 @Composable
 fun UserCard(
     modifier: Modifier = Modifier,
     user: User,
-    lastMessage: Message?
+    lastMessage: Message? = null,
+    selected: Boolean = false
 ) {
-    Row(
-        modifier = modifier
-            .wrapContentHeight()
-            .fillMaxWidth()
-            .padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape),
-            contentAlignment = Alignment.Center
+    Box(Modifier.run {
+        if (selected)
+            background(
+                ItemColorRed,
+                shape = RoundedCornerShape(4.dp)
+            )
+        else this
+    }) {
+        Row(
+            modifier = modifier
+                .padding(8.dp)
+                .fillMaxWidth()
+                ,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .background(user.color)
-                    .fillMaxSize(),
+                    .size(64.dp)
+                    .clip(CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = user.name.run {
-                    if (isEmpty()) ""
-                    else uppercase()
-                        .split(" ")
-                        .joinToString(separator = "") {
-                            s -> s[0].toString()
-                        }
-                })
+                Box(
+                    modifier = Modifier
+                        .background(user.color)
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = user.name.run {
+                        if (isEmpty()) ""
+                        else uppercase()
+                            .split(" ")
+                            .joinToString(separator = "") { s ->
+                                s[0].toString()
+                            }
+                    })
+                }
             }
-        }
-
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = user.name,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            )
-
-            if (lastMessage != null)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
-                    color = Color.Gray,
+                    text = user.name,
                     fontWeight = FontWeight.Bold,
-                    fontStyle = FontStyle.Italic,
-                    text =
-                    if (lastMessage.datetime.isToday())
-                        SimpleDateFormat("HH:mm", Locale.ROOT).format(lastMessage.datetime)
-                    else SimpleDateFormat("dd.MM.yyyy", Locale.ROOT).format(lastMessage.datetime)
+                    fontSize = 20.sp
+                )
 
-                )
-                Text(
-                    text = lastMessage.text,
-                    color = Color.Gray,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 2
-                )
+                if (lastMessage != null)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Bold,
+                            fontStyle = FontStyle.Italic,
+                            text =
+                            if (lastMessage.datetime.isToday())
+                                SimpleDateFormat("HH:mm", Locale.ROOT).format(lastMessage.datetime)
+                            else SimpleDateFormat(
+                                "dd.MM.yyyy",
+                                Locale.ROOT
+                            ).format(lastMessage.datetime)
+
+                        )
+                        Text(
+                            text = lastMessage.text,
+                            color = Color.Gray,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 2
+                        )
+                    }
             }
         }
     }

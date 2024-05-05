@@ -1,5 +1,8 @@
 package ru.gfastg98.sms_messenger.screens
 
+import android.util.Log
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
@@ -22,16 +25,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
-import kotlinx.coroutines.flow.Flow
-import ru.gfastg98.sms_messenger.MessengerViewModel
-import ru.gfastg98.sms_messenger.User
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.Flow
 import ru.gfastg98.sms_messenger.Message
+import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.R
+import ru.gfastg98.sms_messenger.User
+import ru.gfastg98.sms_messenger.color
 import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,61 +51,185 @@ fun AddDialog(
     var decision by remember {
         mutableStateOf(true)
     }
-    var action = {}
+    var action: (() -> Boolean) = { true }
+
+    var hasTriedToDismiss by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = {
             viewModel.doCommand<Nothing>(MessengerViewModel.Commands.SWITCH_DIALOG_OFF)
-                           },
-        title = { Text(text = if (decision) "Новый пользователь" else "Новое сообщение")},
+        },
+        title = { Text(text = "Добавить") },
         text = {
             Column {
-
                 Row {
-                    RadioButton(selected = decision, onClick = { decision = true })
-                    RadioButton(selected = !decision, onClick = { decision = false })
+                    Row(Modifier
+                        .clickable {
+                            decision = true
+                            hasTriedToDismiss = false
+                        },
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Пользователь")
+                        RadioButton(selected = decision,
+                            onClick = {
+                                decision = true
+                                hasTriedToDismiss = false
+                            })
+                    }
+                    Row(
+                        Modifier.clickable {
+                            decision = false
+                            hasTriedToDismiss = false
+                        },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Сообщение")
+                        RadioButton(
+                            selected = !decision,
+                            onClick = {
+                                decision = false
+                                hasTriedToDismiss = false
+                            }
+                        )
+                    }
                 }
 
-                Column {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     if (decision) {
                         //for user
-                        var userName by rememberSaveable { mutableStateOf("") }
-                        var color by rememberSaveable { mutableStateOf("0") }
+                        var username by rememberSaveable { mutableStateOf("") }
+                        var color by rememberSaveable { mutableStateOf("") }
 
+                        var isUsernameError by remember { mutableStateOf(false) }
+                        var isColorError by remember { mutableStateOf(false) }
+
+                        if (hasTriedToDismiss && isUsernameError)
+                            ErrorText("Пустое имя пользователя")
                         TextField(
-                            label = { Text("Имя пользователя")},
-                            value = userName, onValueChange = { userName = it })
+                            label = { Text("Имя пользователя") },
+                            value = username, onValueChange = {
+                                username = it
+                                isUsernameError = username.isBlank()
+                            })
+                        if (hasTriedToDismiss && isColorError)
+                            ErrorText("Неверный цвет")
                         TextField(
-                            label = { Text("Цвет")},
-                            value = color, onValueChange = { color = it },
-                            /*colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color(color.toULong()),
-                                unfocusedContainerColor = Color(color.toULong()),
-                            )*/
+                            label = { Text("Цвет (в HEX формате)") },
+                            value = color,
+                            onValueChange = {
+                                color = it
+                                isColorError = checkColor(color)
+                            },
+                            colors = TextFieldDefaults.run {
+
+                                if (!checkColor(color)) {
+                                    colors(
+                                        focusedContainerColor = color.color,
+                                        focusedTextColor = getInvertedColor(color.color)
+                                    )
+                                } else
+                                    colors()
+                            }
                         )
                         action = {
-                            viewModel
-                                .doCommand<Nothing>(
-                                    MessengerViewModel.Commands.INSERT_USER,
-                                    User(name = userName, color = color.toULongOrNull()
-                                        ?.let { Color(it) } ?: Color(0))
-                                )
+                            if (username.isNotBlank() && !checkColor(color)) {
+                                isUsernameError = false
+                                isColorError = false
+                                viewModel
+                                    .doCommand<Nothing>(
+                                        MessengerViewModel.Commands.INSERT_USER,
+                                        User(name = username, color = color.color)
+                                    )
+                            } else {
+                                hasTriedToDismiss = true
+                                isUsernameError = username.isBlank()
+                                isColorError = checkColor(color)
+                            }
+                            !(isUsernameError || isColorError)
                         }
                     } else {
-
                         //for message
                         var message by rememberSaveable { mutableStateOf("") }
-                        val to by rememberSaveable { mutableStateOf<User?>(null) }
+                        var to by remember { mutableStateOf(currentUsers.firstOrNull()) }
+                        var expanded by remember { mutableStateOf(false) }
 
-                        TextField(value = message, onValueChange = { message = it })
-                        DropDownMenuUsers(obj = currentUsers)
-                        repeat(5){}
+                        var isMessageError by remember { mutableStateOf(false) }
+                        var isUserChooseError by remember { mutableStateOf(to == null) }
+
+                        if (hasTriedToDismiss && isMessageError)
+                            ErrorText("Пустое сообщение")
+                        TextField(
+                            value = message,
+                            onValueChange = {
+                                message = it
+                                isMessageError = it.isBlank()
+                            }
+                        )
+
+                        if (hasTriedToDismiss && isUserChooseError)
+                            ErrorText("Пользователь не выбран")
+
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = {
+                                expanded = !expanded
+                            }
+                        ) {
+                            TextField(
+                                modifier = Modifier.menuAnchor(),
+                                readOnly = true,
+                                value = to?.name ?: "Нет пользователей",
+                                onValueChange = { },
+                                label = { Text("Для") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(
+                                        expanded = expanded
+                                    )
+                                },
+                                colors = ExposedDropdownMenuDefaults.textFieldColors()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = {
+                                    expanded = false
+                                }
+                            ) {
+                                currentUsers.forEach { selectionOption ->
+                                    DropdownMenuItem(
+                                        text = { Text(selectionOption.name) },
+                                        leadingIcon = { Icon(Icons.Default.AccountBox, null) },
+                                        onClick = {
+                                            to = selectionOption
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
 
                         action = {
-                            viewModel
-                                .doCommand<Nothing>(
-                                    MessengerViewModel.Commands.INSERT_MESSAGE,
-                                    Message(text = message, check = true, datetime = Date(), userId = to!!.id)
-                                )
+                            if (message.isNotBlank() && to!=null) {
+                                isMessageError = false
+                                isUserChooseError = false
+                                viewModel
+                                    .doCommand<Nothing>(
+                                        MessengerViewModel.Commands.INSERT_MESSAGE,
+                                        Message(
+                                            text = message,
+                                            check = true,
+                                            datetime = Date(),
+                                            userId = to!!.id,
+                                            fromId = to!!.id
+                                        )
+                                    )
+                            } else {
+                                hasTriedToDismiss = true
+                                isMessageError = message.isBlank()
+                                isUserChooseError = to == null
+                            }
+
+                            !(isUserChooseError || isMessageError)
                         }
                     }
                 }
@@ -114,8 +244,8 @@ fun AddDialog(
         },
         confirmButton = {
             Button(onClick = {
-                action()
-                viewModel.doCommand<Nothing>(MessengerViewModel.Commands.SWITCH_DIALOG_OFF)
+                if (action())
+                    viewModel.doCommand<Nothing>(MessengerViewModel.Commands.SWITCH_DIALOG_OFF)
             }) {
                 Text(text = stringResource(id = R.string.ok))
             }
@@ -123,59 +253,24 @@ fun AddDialog(
     )
 }
 
-@Preview(showSystemUi = true, showBackground = true)
 @Composable
-private fun PreviewDropDownMenuUsers() {
-    DropDownMenuUsers(obj = listOf(User(name = "123")))
+fun ErrorText(text: String) {
+    Text(text = text, color = Color.Red, fontSize = 10.sp)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DropDownMenuUsers(
-    modifier: Modifier = Modifier,
-    obj: List<User>
-) {
-    if (obj.isEmpty()) return
+//false - если цвет верен
+//true - если есть ошибки
+fun checkColor(s: String): Boolean {
 
-    var expanded by remember { mutableStateOf(false) }
-    var selectedOptionText by remember { mutableStateOf(obj.first()) }
+    val b1 = s.length in intArrayOf(6, 8)
+    val b2 = s.lowercase().all { "0123456789abcdef".contains(it) }
+    Log.i("checkColor", "checkColor: ${!(b1 && b2)}")
+    return !(b1 && b2)
+}
 
-    ExposedDropdownMenuBox(
-        modifier = modifier,
-        expanded = expanded,
-        onExpandedChange = {
-            expanded = !expanded
-        }
-    ) {
-        TextField(
-            readOnly = true,
-            value = selectedOptionText.name,
-            onValueChange = { },
-            label = { Text("Для") },
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(
-                    expanded = expanded
-                )
-            },
-            colors = ExposedDropdownMenuDefaults.textFieldColors()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = {
-                expanded = false
-            }
-        ) {
-            obj.forEach { selectionOption ->
-                DropdownMenuItem(
-                    text = { Text(selectionOption.name) },
-                    leadingIcon = { Icon(Icons.Default.AccountBox, null) },
-                    onClick = {
-                        selectedOptionText = selectionOption
-                        expanded = false
-
-                    }
-                )
-            }
-        }
-    }
+fun getInvertedColor(color: Color): Color {
+    val red = 1.0f - color.red
+    val green = 1.0f - color.green
+    val blue = 1.0f - color.blue
+    return Color(red, green, blue, alpha = color.alpha)
 }

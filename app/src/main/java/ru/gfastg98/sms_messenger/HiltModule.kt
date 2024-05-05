@@ -1,6 +1,9 @@
 package ru.gfastg98.sms_messenger
 
+import android.app.Application
 import android.content.Context
+import android.os.Vibrator
+import android.os.VibratorManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -15,5 +18,13 @@ object HiltModule {
     @Provides
     fun create(@ApplicationContext context : Context) : MessageDao {
         return AppDatabase.create(context).messengerDao()
+    }
+
+    @Singleton
+    @Provides
+    fun vibrator(context: Application): Vibrator {
+        return (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager)
+            .defaultVibrator
+
     }
 }

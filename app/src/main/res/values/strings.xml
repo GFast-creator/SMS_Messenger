@@ -2,4 +2,6 @@
     <string name="app_name">SMS Messenger</string>
     <string name="cancel">Отмена</string>
     <string name="ok">OK</string>
+    <string name="select_all">Выделить всё</string>
+    <string name="delete_selected">Удалить выделеное</string>
 </resources>

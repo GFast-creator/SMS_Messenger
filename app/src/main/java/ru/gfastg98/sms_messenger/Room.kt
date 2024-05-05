@@ -22,13 +22,39 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import java.util.Date
 
+val String.color: Color
+    get() =
+        try {
+            Color(android.graphics.Color.parseColor("#$this"))
+        } catch (e: Exception) {
+            e.message?.let { Log.e("parser", it) }
+            Color(0)
+        }
+
+val Color.str: String
+    get() =
+        try {
+            val red = this.red * 255
+            val green = this.green * 255
+            val blue = this.blue * 255
+            String.format("%02x%02x%02x", red.toInt(), green.toInt(), blue.toInt())
+        } catch (e: Exception) {
+            e.message?.let { Log.e("parser", it) }
+            "0"
+        }
+
+
+
+
 @ProvidedTypeConverter
 class Converters {
+    val TAG = "conv"
     /// Color - String
     @TypeConverter
     fun colorFromString(value: String?): Color? {
         if (value == null || value == "0") return Color(0xFF3F51B5)
-        return Color(android.graphics.Color.parseColor("#$value"))
+        Log.i (TAG, "color parsed: ${value.color}")
+        return value.color
         /*if (value.length > 8) throw IllegalArgumentException("color must be in HEX like: 00FF00FF")
         val v = value.toLongOrNull()
         if (v == null) {
@@ -40,7 +66,10 @@ class Converters {
 
     @TypeConverter
     fun colorToString(color: Color?): String? {
-        return color?.value?.toString()?:"0"
+        if (color == null) return "0"
+        val c = color.str
+        Log.i(TAG, "colorToString: $c")
+        return c
     }
     ///
 
@@ -60,7 +89,6 @@ class Converters {
 
 @Entity(
     tableName = "messages",
-
     foreignKeys = [
         ForeignKey(
             entity = User::class,
@@ -69,7 +97,6 @@ class Converters {
             onDelete = ForeignKey.CASCADE
         )
     ])
-
 class Message(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val text: String,
@@ -88,15 +115,6 @@ data class User(
     val name: String = "Test Name",
     var color: Color = Color(0xFFFF9800)
 )
-
-/*class UserAndMessages{
-    @Embedded
-    var user: User? = null
-
-    @Relation(parentColumn = "id", entityColumn = "userId")
-    var messages: List<Message> = emptyList()
-}*/
-
 
 @Database(entities = [Message::class, User::class], version = 1)
 @TypeConverters(Converters::class)

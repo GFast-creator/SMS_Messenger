@@ -4,11 +4,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.EaseIn
+import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,10 +32,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.Flow
 import ru.gfastg98.sms_messenger.screens.AddDialog
 import ru.gfastg98.sms_messenger.screens.MessageCard
 import ru.gfastg98.sms_messenger.screens.MessagesScreen
@@ -35,12 +48,12 @@ import ru.gfastg98.sms_messenger.ui.theme.SMSMessengerTheme
 import java.util.Calendar
 import java.util.Date
 
+enum class ROUTS(val r: String) {
+    USERS("users"), MESSAGES("messages")
+}
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    enum class ROUTS(val r: String) {
-        USERS("users"), MESSAGES("messages")
-    }
 
     private val viewModel: MessengerViewModel by viewModels()
 
@@ -51,6 +64,15 @@ class MainActivity : ComponentActivity() {
             SMSMessengerTheme {
                 val navController = rememberNavController()
                 val isDialog by viewModel.isDialogStateFlow.collectAsState()
+                val deleteList by viewModel.deleteUsersStateFlow.collectAsState()
+
+                val users by viewModel
+                    .doCommand<Flow<List<User>>>(MessengerViewModel.Commands.GET_USERS)!!
+                    .collectAsState(initial = emptyList())
+
+                val lastMessages by viewModel
+                    .doCommand<Flow<List<Message>>>(MessengerViewModel.Commands.GET_LAST_MESSAGE)!!
+                    .collectAsState(initial = emptyList())
 
                 if (isDialog){
                     AddDialog(viewModel)
@@ -61,14 +83,49 @@ class MainActivity : ComponentActivity() {
                         TopAppBar(
                             title = { Text(stringResource(id = R.string.app_name)) },
                             actions = {
-                                IconButton(
-                                    onClick = {
-                                        viewModel.doCommand<Nothing>(MessengerViewModel.Commands.SWITCH_DIALOG_ON)
+                                if (deleteList.isNotEmpty()){
+                                    IconButton(onClick = {
+                                        viewModel.doCommand<Nothing>(
+                                            MessengerViewModel.Commands.DELETE_LIST_UPDATE,
+                                            emptyList<User>()
+                                        )
                                     }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null
-                                    )
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = stringResource(id = R.string.cancel)
+                                        )
+                                    }
+
+                                    IconButton(onClick = {
+                                        viewModel.doCommand<Nothing>(
+                                            MessengerViewModel.Commands.DELETE_LIST_UPDATE,
+                                            users
+                                        )
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.Default.SelectAll,
+                                            contentDescription = stringResource(id = R.string.select_all),
+                                        )
+                                    }
+                                    IconButton(onClick = {
+                                        viewModel.doCommand<Nothing>(MessengerViewModel.Commands.DELETE_USERS, deleteList)
+                                        viewModel.doCommand<Nothing>(MessengerViewModel.Commands.DELETE_LIST_UPDATE, emptyList<User>())
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = stringResource(R.string.delete_selected)
+                                        )
+                                    }
+                                } else {
+                                    IconButton(
+                                        onClick = {
+                                            viewModel.doCommand<Nothing>(MessengerViewModel.Commands.SWITCH_DIALOG_ON)
+                                        }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null
+                                        )
+                                    }
                                 }
                             }
                         )
@@ -83,11 +140,39 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         startDestination = ROUTS.USERS.r
                     ) {
-                        composable(ROUTS.USERS.r) { UsersScreen(viewModel, modifier) }
-                        composable("${ROUTS.MESSAGES.r}/{userId}") { navBackStack ->
+                        composable(ROUTS.USERS.r) {
+                            UsersScreen(navController, modifier, viewModel, users, lastMessages, deleteList) }
+                        composable(
+                            route = "${ROUTS.MESSAGES.r}/{userId}",
+                            enterTransition = {
+                                fadeIn(
+                                    animationSpec = tween(
+                                        300, easing = LinearEasing
+                                    )
+                                ) + slideIntoContainer(
+                                    animationSpec = tween(300, easing = EaseIn),
+                                    towards = AnimatedContentTransitionScope.SlideDirection.Start
+                                )
+                            },
+                            exitTransition = {
+                                fadeOut(
+                                    animationSpec = tween(
+                                        300, easing = LinearEasing
+                                    )
+                                ) + slideOutOfContainer(
+                                    animationSpec = tween(300, easing = EaseOut),
+                                    towards = AnimatedContentTransitionScope.SlideDirection.End
+                                )
+                            },
+                            arguments = listOf(
+                                navArgument("userId") {
+                                    type = NavType.IntType
+                                }
+                            )
+                        ) { navBackStack ->
                             MessagesScreen(
                                 viewModel,
-                                navBackStack.arguments?.getLong("userId"),
+                                navBackStack.arguments?.getInt("userId"),
                                 modifier
                             )
                         }
@@ -98,11 +183,11 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    @Preview(showBackground = true, showSystemUi = true)
-    @Composable
-    fun ScreenPreview() {
-        MessagesScreen(viewModel, 0, Modifier)
-    }
+//    @Preview(showBackground = true, showSystemUi = true)
+//    @Composable
+//    fun ScreenPreview() {
+//        MessagesScreen(viewModel, 0, Modifier)
+//    }
 
     @Preview(showBackground = true, showSystemUi = true)
     @Composable
@@ -142,7 +227,8 @@ class MainActivity : ComponentActivity() {
                     datetime = Calendar.getInstance().apply { set(1989, 11, 1, 1, 1, 3) }.time,
                     userId = 0,
                     fromId = 0
-                )
+                ),
+                selected = true
             )
             UserCard(
                 user = User(),
