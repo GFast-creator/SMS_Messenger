@@ -33,11 +33,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.Flow
+import ru.gfastg98.sms_messenger.Commands.*
 import ru.gfastg98.sms_messenger.Message
 import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.R
 import ru.gfastg98.sms_messenger.User
+import ru.gfastg98.sms_messenger.UsersTable
 import ru.gfastg98.sms_messenger.color
+
 import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,7 +49,7 @@ fun AddDialog(
     viewModel: MessengerViewModel = viewModel()
 ) {
     val currentUsers by viewModel
-        .doCommand<Flow<List<User>>>(MessengerViewModel.Commands.GET_USERS)!!
+        .doCommand<UsersTable>(GET_USERS)!!
         .collectAsState(initial = emptyList())
     var decision by remember {
         mutableStateOf(true)
@@ -56,9 +59,9 @@ fun AddDialog(
     var hasTriedToDismiss by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = {
-            viewModel.doCommand<Nothing>(MessengerViewModel.Commands.SWITCH_DIALOG_OFF)
+            viewModel.doCommand<Nothing>(SWITCH_DIALOG_OFF)
         },
-        title = { Text(text = "Добавить") },
+        title = { Text(text = stringResource(R.string.add)) },
         text = {
             Column {
                 Row {
@@ -68,7 +71,7 @@ fun AddDialog(
                             hasTriedToDismiss = false
                         },
                         verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "Пользователь")
+                        Text(text = stringResource(R.string.user))
                         RadioButton(selected = decision,
                             onClick = {
                                 decision = true
@@ -82,7 +85,7 @@ fun AddDialog(
                         },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "Сообщение")
+                        Text(text = stringResource(R.string.message))
                         RadioButton(
                             selected = !decision,
                             onClick = {
@@ -105,17 +108,17 @@ fun AddDialog(
                         var isColorError by remember { mutableStateOf(false) }
 
                         if (hasTriedToDismiss && isUsernameError)
-                            ErrorText("Пустое имя пользователя")
+                            ErrorText(stringResource(R.string.error_empty_username))
                         TextField(
-                            label = { Text("Имя пользователя") },
+                            label = { Text(stringResource(R.string.username)) },
                             value = username, onValueChange = {
                                 username = it
                                 isUsernameError = username.isBlank()
                             })
                         if (hasTriedToDismiss && isColorError)
-                            ErrorText("Неверный цвет")
+                            ErrorText(stringResource(R.string.error_color))
                         TextField(
-                            label = { Text("Цвет (в HEX формате)") },
+                            label = { Text(stringResource(R.string.title_color)) },
                             value = color,
                             onValueChange = {
                                 color = it
@@ -138,7 +141,7 @@ fun AddDialog(
                                 isColorError = false
                                 viewModel
                                     .doCommand<Nothing>(
-                                        MessengerViewModel.Commands.INSERT_USER,
+                                        INSERT_USER,
                                         User(name = username, color = color.color)
                                     )
                             } else {
@@ -158,7 +161,7 @@ fun AddDialog(
                         var isUserChooseError by remember { mutableStateOf(to == null) }
 
                         if (hasTriedToDismiss && isMessageError)
-                            ErrorText("Пустое сообщение")
+                            ErrorText(stringResource(id = R.string.error_empty_message))
                         TextField(
                             value = message,
                             onValueChange = {
@@ -168,7 +171,7 @@ fun AddDialog(
                         )
 
                         if (hasTriedToDismiss && isUserChooseError)
-                            ErrorText("Пользователь не выбран")
+                            ErrorText(stringResource(R.string.error_user_is_not_selected))
 
                         ExposedDropdownMenuBox(
                             expanded = expanded,
@@ -179,7 +182,7 @@ fun AddDialog(
                             TextField(
                                 modifier = Modifier.menuAnchor(),
                                 readOnly = true,
-                                value = to?.name ?: "Нет пользователей",
+                                value = to?.name ?: stringResource(R.string.no_users),
                                 onValueChange = { },
                                 label = { Text("Для") },
                                 trailingIcon = {
@@ -214,7 +217,7 @@ fun AddDialog(
                                 isUserChooseError = false
                                 viewModel
                                     .doCommand<Nothing>(
-                                        MessengerViewModel.Commands.INSERT_MESSAGE,
+                                        INSERT_MESSAGE,
                                         Message(
                                             text = message,
                                             check = true,
@@ -237,7 +240,7 @@ fun AddDialog(
         },
         dismissButton = {
             Button(onClick = {
-                viewModel.doCommand<Nothing>(MessengerViewModel.Commands.SWITCH_DIALOG_OFF)
+                viewModel.doCommand<Nothing>(SWITCH_DIALOG_OFF)
             }) {
                 Text(text = stringResource(id = R.string.cancel))
             }
@@ -245,7 +248,7 @@ fun AddDialog(
         confirmButton = {
             Button(onClick = {
                 if (action())
-                    viewModel.doCommand<Nothing>(MessengerViewModel.Commands.SWITCH_DIALOG_OFF)
+                    viewModel.doCommand<Nothing>(SWITCH_DIALOG_OFF)
             }) {
                 Text(text = stringResource(id = R.string.ok))
             }

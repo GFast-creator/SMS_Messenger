@@ -5,6 +5,7 @@ import android.os.Vibrator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,23 +13,27 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+
+typealias UsersTable = Flow<List<User>>
+typealias MessagesTable = Flow<List<Message>>
+
+enum class Commands{
+    GET_USERS, GET_MESSAGES, GET_LAST_MESSAGE,
+
+    INSERT_USER, DELETE_USER,
+    INSERT_MESSAGE, DELETE_MESSAGE,
+
+    SWITCH_DIALOG_ON,SWITCH_DIALOG_OFF,
+
+    DELETE_LIST_UPDATE,DELETE_LIST_PLUS,DELETE_LIST_MINUS,
+}
+
 @HiltViewModel
 open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : ViewModel() {
 
     private val TAG: String = MessengerViewModel::class.java.simpleName
 
     @Inject lateinit var vibrator: Vibrator
-
-    enum class Commands{
-        GET_USERS, GET_MESSAGES, GET_LAST_MESSAGE,
-
-        INSERT_USER, DELETE_USER,DELETE_USERS,
-        INSERT_MESSAGE, DELETE_MESSAGE,
-
-        SWITCH_DIALOG_ON,SWITCH_DIALOG_OFF,
-
-        DELETE_LIST_UPDATE,DELETE_LIST_PLUS,DELETE_LIST_MINUS,
-    }
 
     private val _isDialog = MutableStateFlow(false)
 
@@ -47,8 +52,14 @@ open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) 
             Commands.GET_LAST_MESSAGE -> return _dao.getLastMessages() as T
 
             Commands.INSERT_USER -> viewModelScope.launch { _dao.insertUser(data as User)}
-            Commands.DELETE_USER -> viewModelScope.launch { _dao.deleteUser(data as User)}
-            Commands.DELETE_USERS -> viewModelScope.launch { _dao.deleteUser(*(data as List<User>).toTypedArray())}
+            Commands.DELETE_USER -> {
+                if (data is List<*>){
+                    viewModelScope.launch { _dao.deleteUser(*(data as List<User>).toTypedArray()) }
+                } else {
+                    viewModelScope.launch { _dao.deleteUser(data as User) }
+                }
+            }
+            //Commands.DELETE_USERS -> viewModelScope.launch { _dao.deleteUser(*(data as List<User>).toTypedArray())}
 
             Commands.INSERT_MESSAGE -> viewModelScope.launch { _dao.insertMessage(data as Message)}
             Commands.DELETE_MESSAGE -> viewModelScope.launch { _dao.deleteMessage(data as Message)}

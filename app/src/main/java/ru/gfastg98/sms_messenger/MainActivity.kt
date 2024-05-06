@@ -38,13 +38,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.Flow
 import ru.gfastg98.sms_messenger.screens.AddDialog
 import ru.gfastg98.sms_messenger.screens.MessageCard
 import ru.gfastg98.sms_messenger.screens.MessagesScreen
 import ru.gfastg98.sms_messenger.screens.UserCard
 import ru.gfastg98.sms_messenger.screens.UsersScreen
 import ru.gfastg98.sms_messenger.ui.theme.SMSMessengerTheme
+import ru.gfastg98.sms_messenger.Commands.*
 import java.util.Calendar
 import java.util.Date
 
@@ -67,11 +67,11 @@ class MainActivity : ComponentActivity() {
                 val deleteList by viewModel.deleteUsersStateFlow.collectAsState()
 
                 val users by viewModel
-                    .doCommand<Flow<List<User>>>(MessengerViewModel.Commands.GET_USERS)!!
+                    .doCommand<UsersTable>(GET_USERS)!!
                     .collectAsState(initial = emptyList())
 
                 val lastMessages by viewModel
-                    .doCommand<Flow<List<Message>>>(MessengerViewModel.Commands.GET_LAST_MESSAGE)!!
+                    .doCommand<MessagesTable>(GET_LAST_MESSAGE)!!
                     .collectAsState(initial = emptyList())
 
                 if (isDialog){
@@ -86,7 +86,7 @@ class MainActivity : ComponentActivity() {
                                 if (deleteList.isNotEmpty()){
                                     IconButton(onClick = {
                                         viewModel.doCommand<Nothing>(
-                                            MessengerViewModel.Commands.DELETE_LIST_UPDATE,
+                                            DELETE_LIST_UPDATE,
                                             emptyList<User>()
                                         )
                                     }) {
@@ -98,7 +98,7 @@ class MainActivity : ComponentActivity() {
 
                                     IconButton(onClick = {
                                         viewModel.doCommand<Nothing>(
-                                            MessengerViewModel.Commands.DELETE_LIST_UPDATE,
+                                            DELETE_LIST_UPDATE,
                                             users
                                         )
                                     }) {
@@ -108,8 +108,8 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
                                     IconButton(onClick = {
-                                        viewModel.doCommand<Nothing>(MessengerViewModel.Commands.DELETE_USERS, deleteList)
-                                        viewModel.doCommand<Nothing>(MessengerViewModel.Commands.DELETE_LIST_UPDATE, emptyList<User>())
+                                        viewModel.doCommand<Nothing>(DELETE_USER, deleteList)
+                                        viewModel.doCommand<Nothing>(DELETE_LIST_UPDATE, emptyList<User>())
                                     }) {
                                         Icon(
                                             imageVector = Icons.Default.Delete,
@@ -119,7 +119,7 @@ class MainActivity : ComponentActivity() {
                                 } else {
                                     IconButton(
                                         onClick = {
-                                            viewModel.doCommand<Nothing>(MessengerViewModel.Commands.SWITCH_DIALOG_ON)
+                                            viewModel.doCommand<Nothing>(SWITCH_DIALOG_ON)
                                         }) {
                                         Icon(
                                             imageVector = Icons.Default.Add,

@@ -1,7 +1,17 @@
 <resources>
     <string name="app_name">SMS Messenger</string>
     <string name="cancel">Отмена</string>
-    <string name="ok">OK</string>
+    <string name="ok">Oк</string>
     <string name="select_all">Выделить всё</string>
     <string name="delete_selected">Удалить выделеное</string>
+    <string name="add">Добавить</string>
+    <string name="user">Пользователь</string>
+    <string name="message">Сообщение</string>
+    <string name="error_empty_username">Пустое имя пользователя</string>
+    <string name="error_empty_message">Поле сообщение не заполнено</string>
+    <string name="username">Имя пользователя</string>
+    <string name="error_color">Неверный цвет</string>
+    <string name="title_color">Цвет (в HEX формате)</string>
+    <string name="error_user_is_not_selected">Пользователь не выбран</string>
+    <string name="no_users">Нет пользователей...</string>
 </resources>

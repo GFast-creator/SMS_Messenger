@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -31,7 +32,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.Flow
 import ru.gfastg98.sms_messenger.Message
+import ru.gfastg98.sms_messenger.MessagesTable
 import ru.gfastg98.sms_messenger.MessengerViewModel
+import ru.gfastg98.sms_messenger.Commands.*
 import java.util.Date
 
 @Composable
@@ -48,7 +51,7 @@ fun MessagesScreen(
     Log.i("MessagesScreen", "MessagesScreen: id is $userId")
 
     val messages by viewModel
-        .doCommand<Flow<List<Message>>>(MessengerViewModel.Commands.GET_MESSAGES, userId)!!
+        .doCommand<MessagesTable>(GET_MESSAGES, userId)!!
         .collectAsState(initial = emptyList())
 
     Log.i("MessagesScreen", "MessagesScreen: $messages")
@@ -69,7 +72,7 @@ fun MessagesScreen(
 
             val onSendMessage : (message : String) -> Unit = {
                 viewModel.doCommand<Nothing>(
-                    MessengerViewModel.Commands.INSERT_MESSAGE,
+                    INSERT_MESSAGE,
                     Message(text = message, datetime = Date(), userId = userId)
                 )
             }
@@ -99,7 +102,7 @@ fun MessagesScreen(
                             }
                         }) {
                             Icon(
-                                imageVector = Icons.Filled.Send,
+                                imageVector = Icons.AutoMirrored.Filled.Send,
                                 contentDescription = "Send"
                             )
                         }

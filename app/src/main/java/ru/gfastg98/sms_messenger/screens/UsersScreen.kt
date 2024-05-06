@@ -35,23 +35,20 @@ import ru.gfastg98.sms_messenger.ROUTS
 import ru.gfastg98.sms_messenger.User
 import ru.gfastg98.sms_messenger.isToday
 import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
+import ru.gfastg98.sms_messenger.Commands.*
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun UsersScreen(
-    navController : NavHostController,
+    navController: NavHostController,
     modifier: Modifier = Modifier,
     viewModel: MessengerViewModel = viewModel(),
-    users : List<User>,
+    users: List<User>,
     lastMessages: List<Message>,
     deleteList: List<User>
 ) {
-    Log.i("123123123", "UsersScreen: ")
-    //val viewModel : MessengerViewModel = viewModel()
-
-    Log.i("1", "UsersScreen: ${users.size}")
     LazyColumn(
         modifier
             .padding(horizontal = 8.dp)
@@ -66,12 +63,12 @@ fun UsersScreen(
                         if (deleteList.isNotEmpty()) {
                             if (users[index] !in deleteList) {
                                 viewModel.doCommand<Nothing>(
-                                    MessengerViewModel.Commands.DELETE_LIST_PLUS,
+                                    DELETE_LIST_PLUS,
                                     users[index]
                                 )
                             } else {
                                 viewModel.doCommand<Nothing>(
-                                    MessengerViewModel.Commands.DELETE_LIST_MINUS,
+                                    DELETE_LIST_MINUS,
                                     users[index]
                                 )
                             }
@@ -83,7 +80,7 @@ fun UsersScreen(
                     onLongClick = {
                         if (deleteList.isEmpty()) {
                             viewModel.doCommand<Nothing>(
-                                MessengerViewModel.Commands.DELETE_LIST_PLUS,
+                                DELETE_LIST_PLUS,
                                 users[index]
                             )
                             viewModel.vibrate()
@@ -122,8 +119,7 @@ fun UserCard(
         Row(
             modifier = modifier
                 .padding(8.dp)
-                .fillMaxWidth()
-                ,
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
@@ -165,7 +161,8 @@ fun UserCard(
                             fontStyle = FontStyle.Italic,
                             text =
                             if (lastMessage.datetime.isToday())
-                                SimpleDateFormat("HH:mm", Locale.ROOT).format(lastMessage.datetime)
+                                SimpleDateFormat("HH:mm", Locale.ROOT)
+                                    .format(lastMessage.datetime)
                             else SimpleDateFormat(
                                 "dd.MM.yyyy",
                                 Locale.ROOT
