@@ -20,14 +20,17 @@ typealias MessagesTable = Flow<List<Message>>
 enum class Commands{
     GET_USERS, GET_MESSAGES, GET_LAST_MESSAGE,
 
-    INSERT_USER, DELETE_USER,
-    INSERT_MESSAGE, DELETE_MESSAGE,
+    INSERT_USER, DELETE_USER, DELETE_USERS,
+    INSERT_MESSAGE, DELETE_MESSAGE, DELETE_MESSAGES,
 
     SWITCH_DIALOG_ON,SWITCH_DIALOG_OFF,
 
     DELETE_LIST_UPDATE,DELETE_LIST_PLUS,DELETE_LIST_MINUS,
+
+    UPDATE_SMS
 }
 
+typealias SMSTable = Pair<List<User>, List<Message>>
 @HiltViewModel
 open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : ViewModel() {
 
@@ -36,9 +39,12 @@ open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) 
     @Inject lateinit var vibrator: Vibrator
 
     private val _isDialog = MutableStateFlow(false)
-
     val isDialogStateFlow: StateFlow<Boolean>
         get() = _isDialog.asStateFlow()
+
+    private val _smsTable = MutableStateFlow(emptyList<User>() to emptyList<Message>())
+    val smsTable : StateFlow<SMSTable>
+        get() = _smsTable.asStateFlow()
 
     private val _deleteUsersStateFlow = MutableStateFlow(emptyList<User>())
     val deleteUsersStateFlow
@@ -51,7 +57,12 @@ open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) 
             Commands.GET_MESSAGES -> return _dao.getMessages(data as Int) as T
             Commands.GET_LAST_MESSAGE -> return _dao.getLastMessages() as T
 
-            Commands.INSERT_USER -> viewModelScope.launch { _dao.insertUser(data as User)}
+            Commands.INSERT_USER -> {
+                if (data is List<*>){
+                    viewModelScope.launch { _dao.insertUser(*(data as List<User>).toTypedArray()) }
+                } else
+                viewModelScope.launch { _dao.insertUser(data as User)}
+            }
             Commands.DELETE_USER -> {
                 if (data is List<*>){
                     viewModelScope.launch { _dao.deleteUser(*(data as List<User>).toTypedArray()) }
@@ -61,7 +72,11 @@ open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) 
             }
             //Commands.DELETE_USERS -> viewModelScope.launch { _dao.deleteUser(*(data as List<User>).toTypedArray())}
 
-            Commands.INSERT_MESSAGE -> viewModelScope.launch { _dao.insertMessage(data as Message)}
+            Commands.INSERT_MESSAGE -> if (data is List<*>){
+                viewModelScope.launch { _dao.insertMessage(*(data as List<Message>).toTypedArray()) }
+            } else
+                viewModelScope.launch { _dao.insertMessage(data as Message)}
+
             Commands.DELETE_MESSAGE -> viewModelScope.launch { _dao.deleteMessage(data as Message)}
 
             Commands.SWITCH_DIALOG_ON -> _isDialog.value = true
@@ -70,6 +85,10 @@ open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) 
             Commands.DELETE_LIST_UPDATE -> _deleteUsersStateFlow.update { data as List<User> }
             Commands.DELETE_LIST_PLUS -> _deleteUsersStateFlow.value += data as User
             Commands.DELETE_LIST_MINUS -> _deleteUsersStateFlow.value -= data as User
+
+            Commands.DELETE_USERS -> viewModelScope.launch { _dao.deleteAllUsers()}
+            Commands.DELETE_MESSAGES -> viewModelScope.launch { _dao.deleteAllMessages()}
+            Commands.UPDATE_SMS -> _smsTable.value = data as SMSTable
         }
         return null
     }

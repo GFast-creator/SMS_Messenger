@@ -112,7 +112,7 @@ data class User(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(index = true)
     val id: Int = 0,
-    val name: String = "Test Name",
+    val name: String = "test name",
     var color: Color = Color(0xFFFF9800)
 )
 

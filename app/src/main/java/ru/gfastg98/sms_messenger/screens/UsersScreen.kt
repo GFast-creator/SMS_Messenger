@@ -29,15 +29,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_MINUS
+import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_PLUS
 import ru.gfastg98.sms_messenger.Message
 import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.ROUTS
 import ru.gfastg98.sms_messenger.User
 import ru.gfastg98.sms_messenger.isToday
 import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
-import ru.gfastg98.sms_messenger.Commands.*
 import java.text.SimpleDateFormat
 import java.util.Locale
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -46,7 +48,7 @@ fun UsersScreen(
     modifier: Modifier = Modifier,
     viewModel: MessengerViewModel = viewModel(),
     users: List<User>,
-    lastMessages: List<Message>,
+    messages: List<Message> = emptyList(),
     deleteList: List<User>
 ) {
     LazyColumn(
@@ -88,7 +90,7 @@ fun UsersScreen(
                     }
                 ),
                 user = users[index],
-                lastMessage = lastMessages.find { m -> m.userId == users[index].id },
+                lastMessage = messages.findLast { m -> m.userId == users[index].id },
                 selected = users[index] in deleteList
             )
         }

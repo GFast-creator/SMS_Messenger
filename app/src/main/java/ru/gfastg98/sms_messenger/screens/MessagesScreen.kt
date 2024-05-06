@@ -13,7 +13,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,47 +20,46 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.Flow
 import ru.gfastg98.sms_messenger.Message
-import ru.gfastg98.sms_messenger.MessagesTable
-import ru.gfastg98.sms_messenger.MessengerViewModel
-import ru.gfastg98.sms_messenger.Commands.*
-import java.util.Date
+import ru.gfastg98.sms_messenger.R
 
 @Composable
 fun MessagesScreen(
-    viewModel: MessengerViewModel,
+   // viewModel: MessengerViewModel,
+    messages: List<Message>,
     userId: Int?,
-    modifier: Modifier = Modifier
+    modifier: Modifier
 ) {
+    val TAG = "MessagesScreen"
     if (userId == null) {
-        Text(text = "Пользователь не найден")
+        Text(text = stringResource(R.string.error_user_is_not_found))
         return
     }
 
-    Log.i("MessagesScreen", "MessagesScreen: id is $userId")
+    //Log.i("MessagesScreen", "MessagesScreen: id is $userId")
 
-    val messages by viewModel
+    /*val messages by viewModel
         .doCommand<MessagesTable>(GET_MESSAGES, userId)!!
-        .collectAsState(initial = emptyList())
+        .collectAsState(initial = emptyList())*/
 
-    Log.i("MessagesScreen", "MessagesScreen: $messages")
+    //Log.i("MessagesScreen", "MessagesScreen: $messages")
 
     Column(modifier
         .background(MaterialTheme.colorScheme.background)){
         LazyColumn(
-            modifier = Modifier
+            modifier = modifier
                 .weight(1f)
         ) {
+            Log.i(TAG, "MessagesScreen: messages: $messages")
             items(messages.size) { index ->
                 MessageCard(message = messages[index])
             }
@@ -71,10 +69,10 @@ fun MessagesScreen(
             var message by remember { mutableStateOf("") }
 
             val onSendMessage : (message : String) -> Unit = {
-                viewModel.doCommand<Nothing>(
+                /*viewModel.doCommand<Nothing>(
                     INSERT_MESSAGE,
                     Message(text = message, datetime = Date(), userId = userId)
-                )
+                )*/
             }
 
             Row(
@@ -85,7 +83,7 @@ fun MessagesScreen(
                     value = message,
                     onValueChange = { message = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text(text = "Сообщение...") },
+                    placeholder = { Text(text = stringResource(R.string.message_line)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(onSend = {
