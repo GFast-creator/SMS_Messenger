@@ -1,7 +1,6 @@
 package ru.gfastg98.sms_messenger.screens
 
 import android.provider.Telephony
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +18,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.SyncProblem
-import androidx.compose.material3.BottomSheetDefaults.ContainerColor
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -60,24 +57,15 @@ fun MessagesScreen(
         return
     }
 
-    //Log.i("MessagesScreen", "MessagesScreen: id is $userId")
-
-    /*val messages by viewModel
-        .doCommand<MessagesTable>(GET_MESSAGES, userId)!!
-        .collectAsState(initial = emptyList())*/
-
-    //Log.i("MessagesScreen", "MessagesScreen: $messages")
-
     Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
     ) {
         LazyColumn(
-            modifier = modifier
+            modifier = Modifier
                 .weight(1f),
             reverseLayout = true
         ) {
-            Log.i(TAG, "MessagesScreen: messages: $messages")
             items(messages) { message ->
                 MessageCard(message = message)
             }
@@ -98,14 +86,14 @@ fun MessagesScreen(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
             ) {
                 OutlinedTextField(
                     value = message,
                     onValueChange = { message = it },
                     modifier = Modifier.weight(1f),
                     placeholder = { Text(text = stringResource(R.string.message_line)) },
-                    //singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(onSend = {
                         if (message.isNotBlank()) {
@@ -134,7 +122,7 @@ fun MessagesScreen(
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun MessageCard(
     modifier: Modifier = Modifier,
@@ -160,7 +148,9 @@ fun MessageCard(
         ) {
             Box(
                 modifier
-                    .background(ContainerColor)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant
+                    )
             ) {
                 Text(
                     modifier = Modifier

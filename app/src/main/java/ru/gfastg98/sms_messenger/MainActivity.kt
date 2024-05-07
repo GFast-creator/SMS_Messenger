@@ -19,17 +19,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavType
@@ -54,6 +57,7 @@ import ru.gfastg98.sms_messenger.screens.MessageCard
 import ru.gfastg98.sms_messenger.screens.MessagesScreen
 import ru.gfastg98.sms_messenger.screens.UserCard
 import ru.gfastg98.sms_messenger.screens.UsersScreen
+import ru.gfastg98.sms_messenger.screens.getInvertedColor
 import ru.gfastg98.sms_messenger.ui.theme.SMSMessengerTheme
 import java.util.Calendar
 import java.util.Date
@@ -92,7 +96,9 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 val appName = stringResource(id = R.string.app_name)
-                var title by remember{ mutableStateOf(appName)}
+
+                var title by remember{ mutableStateOf("") }
+                var topAppBarColor by remember{ mutableStateOf(Color.Unspecified) }
 
                 val isDialog by viewModel.isDialogStateFlow.collectAsState()
                 val deleteList by viewModel.deleteUsersStateFlow.collectAsState()
@@ -100,22 +106,29 @@ class MainActivity : ComponentActivity() {
                 updateSms()
                 val messagesList by viewModel.smsTable.collectAsState()
 
-                /*val users by viewModel
-                    .doCommand<UsersTable>(GET_USERS)!!
-                    .collectAsState(initial = emptyList())
-
-                val lastMessages by viewModel
-                    .doCommand<MessagesTable>(GET_LAST_MESSAGE)!!
-                    .collectAsState(initial = emptyList())*/
+                navController.addOnDestinationChangedListener{ _, navDestination, bundle ->
+                    if (navDestination.route?.contains(ROUTS.USERS.r) != false){
+                        title = appName
+                        topAppBarColor = Color.Unspecified
+                    } else {
+                        val user = messagesList.users.firstOrNull{u -> u.id == bundle?.getInt("userId")}
+                        title = user?.name?:appName
+                        topAppBarColor = user?.color?: Color.Unspecified
+                    }
+                }
 
                 if (isDialog) {
-                    AddDialog(viewModel)
+                    AddDialog(viewModel,navController)
                 }
 
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text(stringResource(id = R.string.app_name)) },
+                            title = { Text(text = title) },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = topAppBarColor,
+                                titleContentColor = (getInvertedColor(topAppBarColor))
+                            ),
                             actions = {
                                 if (deleteList.isNotEmpty()) {
                                     IconButton(onClick = {
@@ -131,10 +144,10 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     IconButton(onClick = {
-                                        /*viewModel.doCommand<Nothing>(
+                                        viewModel.doCommand<Nothing>(
                                             DELETE_LIST_UPDATE,
-                                            users
-                                        )*/
+                                            messagesList.users
+                                        )
                                     }) {
                                         Icon(
                                             imageVector = Icons.Default.SelectAll,
@@ -153,30 +166,21 @@ class MainActivity : ComponentActivity() {
                                             contentDescription = stringResource(R.string.delete_selected)
                                         )
                                     }
-                                } else {
-                                    IconButton(
-                                        onClick = {
-                                            viewModel.doCommand<Nothing>(SWITCH_DIALOG_ON)
-                                        }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = null
-                                        )
-                                    }
                                 }
                             }
                         )
                     },
                     floatingActionButton = {
-                        /*FloatingActionButton(
+                        FloatingActionButton(
                             onClick = {
-
+                                //navController.navigate(ROUTS.MESSAGES.r + "/-1")
+                                viewModel.doCommand<Nothing>(SWITCH_DIALOG_ON)
                             }) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Новое сообщение"
                             )
-                        }*/
+                        }
                     },
                     modifier = Modifier.fillMaxSize(),
                     containerColor = MaterialTheme.colorScheme.background
@@ -187,13 +191,12 @@ class MainActivity : ComponentActivity() {
                         startDestination = ROUTS.USERS.r
                     ) {
                         composable(ROUTS.USERS.r) {
-                            title = appName
                             UsersScreen(
                                 navController = navController,
                                 modifier = modifier,
                                 viewModel = viewModel,
-                                users = messagesList.first,
-                                messages = messagesList.second,
+                                users = messagesList.users,
+                                messages = messagesList.messages,
                                 deleteList = deleteList
                             )
                         }
@@ -226,21 +229,14 @@ class MainActivity : ComponentActivity() {
                             )
                         ) { navBackStack ->
                             val userId = navBackStack.arguments?.getInt("userId")
-                            val username = messagesList.first.first { u -> u.id == userId }.name
-
-                            title = username
+                            val currentUser = messagesList.users.firstOrNull { u -> u.id == userId }
 
                             MessagesScreen(
-                                messages = messagesList.second.filter { it.userId == userId },
-                                userAddress = username,
+                                messages = messagesList.messages.filter { it.userId == userId },
+                                userAddress = currentUser?.name,
                                 modifier = modifier,
                                 viewModel = viewModel
                             )
-                            /*MessagesScreen(
-                                viewModel = viewModel,
-                                userId = navBackStack.arguments?.getInt("userId"),
-                                modifier = modifier
-                            )*/
                         }
                     }
                 }

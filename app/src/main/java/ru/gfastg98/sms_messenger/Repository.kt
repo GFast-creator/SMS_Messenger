@@ -1,16 +1,21 @@
 package ru.gfastg98.sms_messenger
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.provider.ContactsContract
 import android.provider.Telephony
 import android.telephony.SmsManager
 import android.widget.Toast
 import ru.gfastg98.sms_messenger.ui.theme.colorPool
 import java.util.Date
 
+
 class Repository {
-    companion object{
+    companion object {
+        private const val TAG = "Repository"
+
         fun refreshSmsInbox(context: Context): SMSTable {
             val users = mutableListOf<User>()
             val smsList = mutableListOf<Message>()
@@ -26,14 +31,14 @@ class Repository {
                     null,
                     null
                 )
-                    ?: return (emptyList<User>() to emptyList())
+                    ?: return SMSTable(emptyList(), emptyList())
 
             val indexBody = cursor.getColumnIndex(Telephony.Sms.BODY)
             val indexAddress = cursor.getColumnIndex(Telephony.Sms.ADDRESS)
             val indexType = cursor.getColumnIndex(Telephony.Sms.TYPE)
             val indexDate = cursor.getColumnIndex(Telephony.Sms.DATE)
 
-            if (indexBody < 0 || !cursor.moveToFirst()) return (emptyList<User>() to emptyList())
+            if (indexBody < 0 || !cursor.moveToFirst()) return SMSTable(emptyList(), emptyList())
 
             do {
                 val username = cursor.getString(indexAddress)
@@ -64,10 +69,10 @@ class Repository {
 
             cursor.close()
 
-            return users to smsList
+            return SMSTable(users,smsList)
         }
 
-        fun sendSMS(context : Context, message: String, to: String) {
+        fun sendSMS(context: Context, message: String, to: String) {
             try {
                 val smsManager: SmsManager = context.getSystemService(SmsManager::class.java)
                 val pendingIntent = PendingIntent.getBroadcast(
@@ -86,11 +91,61 @@ class Repository {
                     pendingIntent
                 )
 
-                Toast.makeText(context, "Your sms has successfully sent!", Toast.LENGTH_SHORT).show()
-            } catch (e : Exception){
-                Toast.makeText(context,"Your sms has failed...", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Your sms has successfully sent!", Toast.LENGTH_SHORT)
+                    .show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Your sms has failed...", Toast.LENGTH_LONG).show()
                 e.printStackTrace()
             }
+        }
+
+        @SuppressLint("Range")
+        fun getContactList(context: Context): List<User> {
+            val cur = context.contentResolver.query(
+                ContactsContract.Contacts.CONTENT_URI,
+                null,
+                null,
+                null,
+                null
+            ) ?: return emptyList()
+
+            val list = mutableListOf<User>()
+            if (cur.count > 0) {
+                if (cur.moveToFirst()) {
+                    do {
+                        val id = cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID))
+                        val name = cur.getString(cur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME))
+                        if (cur.getInt(
+                                cur.getColumnIndex(
+                                    ContactsContract.Contacts.HAS_PHONE_NUMBER
+                                )
+                            ) > 0
+                        ) {
+                            val pCur = context.contentResolver.query(
+                                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                                null,
+                                ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
+                                arrayOf<String>(id),
+                                null
+                            ) ?: continue
+                            pCur.moveToFirst()
+                            val num =
+                                pCur.getString(
+                                    pCur.getColumnIndex(
+                                        ContactsContract.CommonDataKinds.Phone.NUMBER
+                                    )
+                                )
+
+                            pCur.close()
+                        }
+                        list += User(name = name)
+                    } while (cur.moveToNext())
+
+                    cur.close()
+
+                }
+            }
+            return list
         }
     }
 }

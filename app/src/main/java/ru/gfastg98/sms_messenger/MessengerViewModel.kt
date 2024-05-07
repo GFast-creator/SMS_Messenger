@@ -28,10 +28,13 @@ enum class Commands {
 
     DELETE_LIST_UPDATE, DELETE_LIST_PLUS, DELETE_LIST_MINUS,
 
-    UPDATE_SMS, SEND_SMS
+    UPDATE_SMS, SEND_SMS, ADD_USER, GET_CONTACTS
 }
 
-typealias SMSTable = Pair<List<User>, List<Message>>
+data class SMSTable(
+    var users : List<User>,
+    var messages: List<Message>,
+)
 
 @HiltViewModel
 open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : ViewModel() {
@@ -45,7 +48,7 @@ open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) 
     val isDialogStateFlow: StateFlow<Boolean>
         get() = _isDialog.asStateFlow()
 
-    private val _smsTable = MutableStateFlow(emptyList<User>() to emptyList<Message>())
+    private val _smsTable = MutableStateFlow(SMSTable(emptyList<User>(), emptyList<Message>()))
     val smsTable: StateFlow<SMSTable>
         get() = _smsTable.asStateFlow()
 
@@ -74,11 +77,10 @@ open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) 
                     viewModelScope.launch { _dao.deleteUser(data as User) }
                 }
             }
-            //Commands.DELETE_USERS -> viewModelScope.launch { _dao.deleteUser(*(data as List<User>).toTypedArray())}
 
-            Commands.INSERT_MESSAGE -> if (data is List<*>) {
+            Commands.INSERT_MESSAGE -> if (data is List<*>)
                 viewModelScope.launch { _dao.insertMessage(*(data as List<Message>).toTypedArray()) }
-            } else
+            else
                 viewModelScope.launch { _dao.insertMessage(data as Message) }
 
             Commands.DELETE_MESSAGE -> viewModelScope.launch { _dao.deleteMessage(data as Message) }
@@ -97,6 +99,9 @@ open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) 
                 data as Array<Any>
                 Repository.sendSMS(data[0] as Context, data[1] as String, data[2] as String)
             }
+
+            Commands.GET_CONTACTS -> return Repository.getContactList(data as Context) as T
+            Commands.ADD_USER -> _smsTable.value.users += data as User
         }
         return null
     }

@@ -1,6 +1,5 @@
 package ru.gfastg98.sms_messenger.screens
 
-import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -58,7 +57,6 @@ fun UsersScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(users.size, key = { it }) { index ->
-            Log.i("1", "UsersScreen: ${users[index]}")
             UserCard(
                 modifier = Modifier.combinedClickable(
                     onClick = {

@@ -93,7 +93,7 @@ class Converters {
     ])
 class Message(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val text: String,
+    var text: String,
     var datetime: Date,
     var check: Boolean = false,
     @ColumnInfo(index = true)
@@ -105,8 +105,8 @@ class Message(
 data class User(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(index = true)
-    val id: Int = 0,
-    val name: String = "test name",
+    var id: Int = 0,
+    var name: String = "test name",
     var color: Color = Color(0xFFFF9800)
 )
 
