@@ -309,4 +309,5 @@ fun Date.isToday(): Boolean {
     return date == Date().date &&
             month == Date().month &&
             year == Date().year
+
 }
