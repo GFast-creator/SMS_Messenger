@@ -11,6 +11,8 @@ val colorPool = listOf(
     Color(0xFFffdbd1),
 )
 
+val checkColor = Color(0xFF1E88E5)
+
 val ItemColorRed = Color(0xFFFF5757)
 val ItemColorGreen = Color(0xFFA8E4A0)
 

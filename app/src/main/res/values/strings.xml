@@ -13,7 +13,8 @@
     <string name="error_color">Неверный цвет</string>
     <string name="title_color">Цвет (в HEX формате)</string>
     <string name="error_user_is_not_selected">Пользователь не выбран</string>
-    <string name="no_users">Нет пользователей...</string>
-    <string name="message_line">Сообщение...</string>
+    <string name="no_users">Нет пользователей…</string>
+    <string name="message_line">Сообщение…</string>
     <string name="error_user_is_not_found">Пользователь не найден</string>
+    <string name="title_activity_start">StartActivity</string>
 </resources>

@@ -15,5 +15,7 @@
     <string name="title_color">Color (HEX Format)</string>
     <string name="error_user_is_not_selected">User is not selected</string>
     <string name="no_users">No users...</string>
-    <string name="message_line">M1essage...</string>
+    <string name="message_line">Message...</string>
+    <string name="error_user_is_not_found">user is not founded</string>
+    <string name="title_activity_start">Messenger</string>
 </resources>

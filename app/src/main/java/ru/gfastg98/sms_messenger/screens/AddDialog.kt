@@ -32,16 +32,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.flow.Flow
-import ru.gfastg98.sms_messenger.Commands.*
-import ru.gfastg98.sms_messenger.Message
+import ru.gfastg98.sms_messenger.Commands.GET_USERS
+import ru.gfastg98.sms_messenger.Commands.INSERT_USER
+import ru.gfastg98.sms_messenger.Commands.SWITCH_DIALOG_OFF
 import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.R
 import ru.gfastg98.sms_messenger.User
 import ru.gfastg98.sms_messenger.UsersTable
 import ru.gfastg98.sms_messenger.color
-
-import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -215,7 +213,7 @@ fun AddDialog(
                             if (message.isNotBlank() && to!=null) {
                                 isMessageError = false
                                 isUserChooseError = false
-                                viewModel
+                                /*viewModel
                                     .doCommand<Nothing>(
                                         INSERT_MESSAGE,
                                         Message(
@@ -225,7 +223,7 @@ fun AddDialog(
                                             userId = to!!.id,
                                             fromId = to!!.id
                                         )
-                                    )
+                                    )*/
                             } else {
                                 hasTriedToDismiss = true
                                 isMessageError = message.isBlank()

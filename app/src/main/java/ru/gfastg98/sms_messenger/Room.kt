@@ -1,6 +1,7 @@
 package ru.gfastg98.sms_messenger
 
 import android.content.Context
+import android.provider.Telephony
 import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.room.ColumnInfo
@@ -51,21 +52,14 @@ class Converters {
     val TAG = "conv"
     /// Color - String
     @TypeConverter
-    fun colorFromString(value: String?): Color? {
+    fun colorFromString(value: String?): Color {
         if (value == null || value == "0") return Color(0xFF3F51B5)
         Log.i (TAG, "color parsed: ${value.color}")
         return value.color
-        /*if (value.length > 8) throw IllegalArgumentException("color must be in HEX like: 00FF00FF")
-        val v = value.toLongOrNull()
-        if (v == null) {
-            Log.e("conv", "null Long")
-            return Color(0)
-        }
-        return Color(v)*/
     }
 
     @TypeConverter
-    fun colorToString(color: Color?): String? {
+    fun colorToString(color: Color?): String {
         if (color == null) return "0"
         val c = color.str
         Log.i(TAG, "colorToString: $c")
@@ -104,7 +98,7 @@ class Message(
     var check: Boolean = false,
     @ColumnInfo(index = true)
     val userId: Int,
-    val fromId: Int? = null
+    val type: Int = Telephony.Sms.MESSAGE_TYPE_ALL
 )
 
 @Entity(tableName = "users")
