@@ -1,6 +1,18 @@
 package ru.gfastg98.sms_messenger.ui.theme
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+
+
+@Composable
+fun getInvertedColor(color: Color): Color {
+    if (color == Color.Unspecified) return MaterialTheme.colorScheme.primary
+    val red = 1.0f - color.red
+    val green = 1.0f - color.green
+    val blue = 1.0f - color.blue
+    return Color(red, green, blue, alpha = color.alpha)
+}
 
 val colorPool = listOf(
     Color(0xFF8f4c38),

@@ -17,8 +17,9 @@ class Repository {
         private const val TAG = "Repository"
 
         fun refreshSmsInbox(context: Context): SMSTable {
+            val messages = mutableListOf<Message>()
             val users = mutableListOf<User>()
-            val smsList = mutableListOf<Message>()
+
             val cursor =
                 context.contentResolver.query(
                     Telephony.Sms.CONTENT_URI,
@@ -27,49 +28,45 @@ class Repository {
                         Telephony.Sms.BODY,
                         Telephony.Sms.TYPE,
                         Telephony.Sms.DATE,
+                        Telephony.Sms.THREAD_ID
                     ),
                     null,
                     null
                 )
-                    ?: return SMSTable(emptyList(), emptyList())
+                    ?: return SMSTable()
 
             val indexBody = cursor.getColumnIndex(Telephony.Sms.BODY)
             val indexAddress = cursor.getColumnIndex(Telephony.Sms.ADDRESS)
             val indexType = cursor.getColumnIndex(Telephony.Sms.TYPE)
             val indexDate = cursor.getColumnIndex(Telephony.Sms.DATE)
+            val indexThreadId = cursor.getColumnIndex(Telephony.Sms.THREAD_ID)
 
-            if (indexBody < 0 || !cursor.moveToFirst()) return SMSTable(emptyList(), emptyList())
+            if (indexBody < 0 || !cursor.moveToFirst()) return SMSTable()
 
             do {
-                val username = cursor.getString(indexAddress)
+                val address = cursor.getString(indexAddress)
                 val message = cursor.getString(indexBody)
                 val type = cursor.getInt(indexType)
                 val date = cursor.getLong(indexDate)
+                val threadId = cursor.getInt(indexThreadId)
 
-                val userIndex = users.indexOfFirst { u -> u.name == username }
-                if (userIndex != -1) {
-                    smsList += Message(
-                        text = message,
-                        datetime = Date(date),
-                        userId = users[userIndex].id,
-                        type = type
-                    )
-                } else {
-                    val newUser = User((users.lastOrNull()?.id?.plus(1)) ?: 0, name = username)
+                messages += Message(
+                    text = message,
+                    datetime = Date(date),
+                    threadId = threadId,
+                    type = type
+                )
+
+                val userIndex = users.indexOfFirst { u -> u.name == address }
+                if (userIndex == -1) {
+                    val newUser = User(threadId , name = address)
                     newUser.color = colorPool[newUser.id % 6]
                     users += newUser
-                    smsList += Message(
-                        text = message,
-                        datetime = Date(date),
-                        userId = newUser.id,
-                        type = type
-                    )
                 }
             } while (cursor.moveToNext())
 
             cursor.close()
-
-            return SMSTable(users,smsList)
+            return SMSTable(users, messages)
         }
 
         fun sendSMS(context: Context, message: String, to: String) {
@@ -113,32 +110,39 @@ class Repository {
             if (cur.count > 0) {
                 if (cur.moveToFirst()) {
                     do {
-                        val id = cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID))
-                        val name = cur.getString(cur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME))
-                        if (cur.getInt(
-                                cur.getColumnIndex(
-                                    ContactsContract.Contacts.HAS_PHONE_NUMBER
-                                )
-                            ) > 0
-                        ) {
-                            val pCur = context.contentResolver.query(
-                                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                                null,
-                                ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
-                                arrayOf<String>(id),
-                                null
-                            ) ?: continue
-                            pCur.moveToFirst()
-                            val num =
-                                pCur.getString(
-                                    pCur.getColumnIndex(
-                                        ContactsContract.CommonDataKinds.Phone.NUMBER
+                        try {
+                            val id =
+                                cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID))
+                            val name =
+                                cur.getString(cur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME))
+                            if (cur.getInt(
+                                    cur.getColumnIndex(
+                                        ContactsContract.Contacts.HAS_PHONE_NUMBER
                                     )
-                                )
+                                ) > 0
+                            ) {
+                                val pCur = context.contentResolver.query(
+                                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                                    null,
+                                    ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
+                                    arrayOf<String>(id),
+                                    null
+                                ) ?: continue
+                                pCur.moveToFirst()
+                                val num =
+                                    pCur.getString(
+                                        pCur.getColumnIndex(
+                                            ContactsContract.CommonDataKinds.Phone.NUMBER
+                                        )
+                                    )
 
-                            pCur.close()
+                                pCur.close()
+                            }
+
+                            list += User(name = name)
+                        }catch (e:Exception){
+                            continue
                         }
-                        list += User(name = name)
                     } while (cur.moveToNext())
 
                     cur.close()

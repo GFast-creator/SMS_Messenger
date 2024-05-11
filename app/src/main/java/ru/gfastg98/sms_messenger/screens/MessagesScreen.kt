@@ -185,7 +185,7 @@ private fun MessageCardPreview() {
     MessageCard(
         message = Message(
             text = "TEST",
-            userId = 0,
+            threadId = 0,
             datetime = Date(),
             check = false,
             type = Telephony.Sms.MESSAGE_TYPE_FAILED

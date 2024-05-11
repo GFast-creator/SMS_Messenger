@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavType
@@ -49,7 +50,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dagger.hilt.android.AndroidEntryPoint
 import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_UPDATE
-import ru.gfastg98.sms_messenger.Commands.DELETE_USER
 import ru.gfastg98.sms_messenger.Commands.SWITCH_DIALOG_ON
 import ru.gfastg98.sms_messenger.Commands.UPDATE_SMS
 import ru.gfastg98.sms_messenger.screens.AddDialog
@@ -57,8 +57,8 @@ import ru.gfastg98.sms_messenger.screens.MessageCard
 import ru.gfastg98.sms_messenger.screens.MessagesScreen
 import ru.gfastg98.sms_messenger.screens.UserCard
 import ru.gfastg98.sms_messenger.screens.UsersScreen
-import ru.gfastg98.sms_messenger.screens.getInvertedColor
 import ru.gfastg98.sms_messenger.ui.theme.SMSMessengerTheme
+import ru.gfastg98.sms_messenger.ui.theme.getInvertedColor
 import java.util.Calendar
 import java.util.Date
 
@@ -96,7 +96,6 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 val appName = stringResource(id = R.string.app_name)
-
                 var title by remember{ mutableStateOf("") }
                 var topAppBarColor by remember{ mutableStateOf(Color.Unspecified) }
 
@@ -105,6 +104,7 @@ class MainActivity : ComponentActivity() {
 
                 updateSms()
                 val messagesList by viewModel.smsTable.collectAsState()
+                val contacts = viewModel.doCommand<List<User>>(Commands.GET_CONTACTS, LocalContext.current)!!
 
                 navController.addOnDestinationChangedListener{ _, navDestination, bundle ->
                     if (navDestination.route?.contains(ROUTS.USERS.r) != false){
@@ -117,8 +117,9 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+
                 if (isDialog) {
-                    AddDialog(viewModel,navController)
+                    AddDialog(viewModel,navController, contacts)
                 }
 
                 Scaffold(
@@ -155,11 +156,11 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
                                     IconButton(onClick = {
-                                        viewModel.doCommand<Nothing>(DELETE_USER, deleteList)
+                                        /*viewModel.doCommand<Nothing>(DELETE_USER, deleteList)
                                         viewModel.doCommand<Nothing>(
                                             DELETE_LIST_UPDATE,
                                             emptyList<User>()
-                                        )
+                                        )*/
                                     }) {
                                         Icon(
                                             imageVector = Icons.Default.Delete,
@@ -232,7 +233,7 @@ class MainActivity : ComponentActivity() {
                             val currentUser = messagesList.users.firstOrNull { u -> u.id == userId }
 
                             MessagesScreen(
-                                messages = messagesList.messages.filter { it.userId == userId },
+                                messages = messagesList.messages.filter { it.threadId == userId },
                                 userAddress = currentUser?.name,
                                 modifier = modifier,
                                 viewModel = viewModel
@@ -253,7 +254,7 @@ class MainActivity : ComponentActivity() {
                     message = Message(
                         text = "19\n18",
                         datetime = Date(),
-                        userId = 6,
+                        threadId = 6,
                         type = if (index % 3 == 0)Telephony.Sms.MESSAGE_TYPE_OUTBOX
                         else Telephony.Sms.MESSAGE_TYPE_INBOX
                     )
@@ -271,7 +272,7 @@ class MainActivity : ComponentActivity() {
                 lastMessage = Message(
                     text = "127059324750923745972359728570923758237459237592290345723049857209387592387582379520934578923573",
                     datetime = Date(),
-                    userId = 0,
+                    threadId = 0,
                     type = Telephony.Sms.MESSAGE_TYPE_INBOX
                 )
             )
@@ -280,22 +281,22 @@ class MainActivity : ComponentActivity() {
                 lastMessage = Message(
                     text = "123",
                     datetime = Calendar.getInstance().apply { set(1989, 11, 1, 1, 1, 3) }.time,
-                    userId = 0,
+                    threadId = 0,
                     type = Telephony.Sms.MESSAGE_TYPE_INBOX
                 ),
                 selected = true
             )
             UserCard(
                 user = User(),
-                lastMessage = Message(text = "123", datetime = Date(), userId = 0, type = Telephony.Sms.MESSAGE_TYPE_OUTBOX)
+                lastMessage = Message(text = "123", datetime = Date(), threadId = 0, type = Telephony.Sms.MESSAGE_TYPE_OUTBOX)
             )
             UserCard(
                 user = User(),
-                lastMessage = Message(text = "123", datetime = Date(), userId = 0, type = Telephony.Sms.MESSAGE_TYPE_INBOX)
+                lastMessage = Message(text = "123", datetime = Date(), threadId = 0, type = Telephony.Sms.MESSAGE_TYPE_INBOX)
             )
             UserCard(
                 user = User(),
-                lastMessage = Message(text = "123", datetime = Date(), userId = 0, type = Telephony.Sms.MESSAGE_TYPE_INBOX)
+                lastMessage = Message(text = "123", datetime = Date(), threadId = 0, type = Telephony.Sms.MESSAGE_TYPE_INBOX)
             )
         }
     }

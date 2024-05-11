@@ -88,7 +88,7 @@ fun UsersScreen(
                     }
                 ),
                 user = users[index],
-                lastMessage = messages.findLast { m -> m.userId == users[index].id },
+                lastMessage = messages.findLast { m -> m.threadId == users[index].id },
                 selected = users[index] in deleteList
             )
         }

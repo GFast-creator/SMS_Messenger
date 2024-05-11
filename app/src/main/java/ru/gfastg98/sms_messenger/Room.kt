@@ -87,7 +87,7 @@ class Converters {
         ForeignKey(
             entity = User::class,
             parentColumns = arrayOf("id"),
-            childColumns = arrayOf("userId"),
+            childColumns = arrayOf("threadId"),
             onDelete = ForeignKey.CASCADE
         )
     ])
@@ -97,7 +97,7 @@ class Message(
     var datetime: Date,
     var check: Boolean = false,
     @ColumnInfo(index = true)
-    val userId: Int,
+    val threadId: Int?,
     val type: Int = Telephony.Sms.MESSAGE_TYPE_ALL
 )
 
@@ -145,21 +145,21 @@ interface MessageDao {
     @Update
     suspend fun updateMessage(vararg message: Message)
 
-    @Query("SELECT * FROM users left join messages on messages.userId = users.id")
-    fun getTable() : Flow<Map<User, List<Message>>>
+/*    @Query("SELECT * FROM users left join messages on messages.userId = users.id")
+    fun getTable() : Flow<Map<User, List<Message>>>*/
 
     @Query("SELECT * FROM users")
     fun getUsers() : Flow<List<User>>
 
-    @Query("SELECT * FROM messages where userId = :userId")
-    fun getMessages(userId : Int) : Flow<List<Message>>
+/*    @Query("SELECT * FROM messages where userId = :userId")
+    fun getMessages(userId : Int) : Flow<List<Message>>*/
 
     //@Query("SELECT * FROM users LEFT JOIN messages on (users.id = messages.userId) where  ORDER BY datetime LIMIT 1 ")
-    @Query("select messages.* " +
+/*    @Query("select messages.* " +
             "from messages, (select userId, max(datetime) as d from messages group by userId) as max_user " +
             "where messages.userId=max_user.userId " +
             "and messages.datetime = max_user.d;")
-    fun getLastMessages() : Flow<List<Message>>
+    fun getLastMessages() : Flow<List<Message>>*/
 
     @Delete
     suspend fun deleteUser(vararg user: User)

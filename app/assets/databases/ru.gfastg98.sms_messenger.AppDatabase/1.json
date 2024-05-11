@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "e93662f99bdb20f2b8c7ac052c4fb932",
+    "identityHash": "14cf9081a27d940adcb16e156a04b96d",
     "entities": [
       {
         "tableName": "messages",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `text` TEXT NOT NULL, `datetime` INTEGER NOT NULL, `check` INTEGER NOT NULL, `userId` INTEGER NOT NULL, `type` INTEGER NOT NULL, FOREIGN KEY(`userId`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `text` TEXT NOT NULL, `datetime` INTEGER NOT NULL, `check` INTEGER NOT NULL, `threadId` INTEGER, `type` INTEGER NOT NULL, FOREIGN KEY(`threadId`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -33,10 +33,10 @@
             "notNull": true
           },
           {
-            "fieldPath": "userId",
-            "columnName": "userId",
+            "fieldPath": "threadId",
+            "columnName": "threadId",
             "affinity": "INTEGER",
-            "notNull": true
+            "notNull": false
           },
           {
             "fieldPath": "type",
@@ -53,13 +53,13 @@
         },
         "indices": [
           {
-            "name": "index_messages_userId",
+            "name": "index_messages_threadId",
             "unique": false,
             "columnNames": [
-              "userId"
+              "threadId"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_userId` ON `${TABLE_NAME}` (`userId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_threadId` ON `${TABLE_NAME}` (`threadId`)"
           }
         ],
         "foreignKeys": [
@@ -68,7 +68,7 @@
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "userId"
+              "threadId"
             ],
             "referencedColumns": [
               "id"
@@ -122,7 +122,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e93662f99bdb20f2b8c7ac052c4fb932')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '14cf9081a27d940adcb16e156a04b96d')"
     ]
   }
 }
