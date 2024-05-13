@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "f84181e6625cf48acc3fec639a7d5c55",
+    "identityHash": "23bac20da99ddf2136b600953a1bcea3",
     "entities": [
       {
         "tableName": "messages",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `text` TEXT NOT NULL, `datetime` INTEGER NOT NULL, `check` INTEGER NOT NULL, `userId` INTEGER NOT NULL, `fromId` INTEGER, FOREIGN KEY(`userId`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `text` TEXT NOT NULL, `datetime` INTEGER NOT NULL, `check` INTEGER NOT NULL, `threadId` INTEGER, `type` INTEGER NOT NULL, FOREIGN KEY(`threadId`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -33,16 +33,16 @@
             "notNull": true
           },
           {
-            "fieldPath": "userId",
-            "columnName": "userId",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "fromId",
-            "columnName": "fromId",
+            "fieldPath": "threadId",
+            "columnName": "threadId",
             "affinity": "INTEGER",
             "notNull": false
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -53,13 +53,13 @@
         },
         "indices": [
           {
-            "name": "index_messages_userId",
+            "name": "index_messages_threadId",
             "unique": false,
             "columnNames": [
-              "userId"
+              "threadId"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_userId` ON `${TABLE_NAME}` (`userId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_threadId` ON `${TABLE_NAME}` (`threadId`)"
           }
         ],
         "foreignKeys": [
@@ -68,7 +68,7 @@
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "userId"
+              "threadId"
             ],
             "referencedColumns": [
               "id"
@@ -78,7 +78,7 @@
       },
       {
         "tableName": "users",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `color` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `num` TEXT, `color` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -91,6 +91,12 @@
             "columnName": "name",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "num",
+            "columnName": "num",
+            "affinity": "TEXT",
+            "notNull": false
           },
           {
             "fieldPath": "color",
@@ -122,7 +128,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f84181e6625cf48acc3fec639a7d5c55')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '23bac20da99ddf2136b600953a1bcea3')"
     ]
   }
 }

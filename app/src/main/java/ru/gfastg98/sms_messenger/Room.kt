@@ -1,6 +1,7 @@
 package ru.gfastg98.sms_messenger
 
 import android.content.Context
+import android.provider.Telephony
 import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.room.ColumnInfo
@@ -22,52 +23,22 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import java.util.Date
 
-val String.color: Color
-    get() =
-        try {
-            Color(android.graphics.Color.parseColor("#$this"))
-        } catch (e: Exception) {
-            e.message?.let { Log.e("parser", it) }
-            Color(0)
-        }
-
-val Color.str: String
-    get() =
-        try {
-            val red = this.red * 255
-            val green = this.green * 255
-            val blue = this.blue * 255
-            String.format("%02x%02x%02x", red.toInt(), green.toInt(), blue.toInt())
-        } catch (e: Exception) {
-            e.message?.let { Log.e("parser", it) }
-            "0"
-        }
-
-
-
 
 @ProvidedTypeConverter
 class Converters {
     val TAG = "conv"
     /// Color - String
     @TypeConverter
-    fun colorFromString(value: String?): Color? {
+    fun colorFromString(value: String?): Color {
         if (value == null || value == "0") return Color(0xFF3F51B5)
         Log.i (TAG, "color parsed: ${value.color}")
         return value.color
-        /*if (value.length > 8) throw IllegalArgumentException("color must be in HEX like: 00FF00FF")
-        val v = value.toLongOrNull()
-        if (v == null) {
-            Log.e("conv", "null Long")
-            return Color(0)
-        }
-        return Color(v)*/
     }
 
     @TypeConverter
-    fun colorToString(color: Color?): String? {
+    fun colorToString(color: Color?): String {
         if (color == null) return "0"
-        val c = color.str
+        val c = color.string
         Log.i(TAG, "colorToString: $c")
         return c
     }
@@ -93,26 +64,27 @@ class Converters {
         ForeignKey(
             entity = User::class,
             parentColumns = arrayOf("id"),
-            childColumns = arrayOf("userId"),
+            childColumns = arrayOf("threadId"),
             onDelete = ForeignKey.CASCADE
         )
     ])
 class Message(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val text: String,
+    var text: String,
     var datetime: Date,
     var check: Boolean = false,
     @ColumnInfo(index = true)
-    val userId: Int,
-    val fromId: Int? = null
+    val threadId: Int?,
+    val type: Int = Telephony.Sms.MESSAGE_TYPE_ALL
 )
 
 @Entity(tableName = "users")
 data class User(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(index = true)
-    val id: Int = 0,
-    val name: String = "Test Name",
+    var id: Long = 0,
+    var name: String = "test name",
+    var num: String? = null,
     var color: Color = Color(0xFFFF9800)
 )
 
@@ -151,21 +123,21 @@ interface MessageDao {
     @Update
     suspend fun updateMessage(vararg message: Message)
 
-    @Query("SELECT * FROM users left join messages on messages.userId = users.id")
-    fun getTable() : Flow<Map<User, List<Message>>>
+/*    @Query("SELECT * FROM users left join messages on messages.userId = users.id")
+    fun getTable() : Flow<Map<User, List<Message>>>*/
 
     @Query("SELECT * FROM users")
     fun getUsers() : Flow<List<User>>
 
-    @Query("SELECT * FROM messages where userId = :userId")
-    fun getMessages(userId : Int) : Flow<List<Message>>
+/*    @Query("SELECT * FROM messages where userId = :userId")
+    fun getMessages(userId : Int) : Flow<List<Message>>*/
 
     //@Query("SELECT * FROM users LEFT JOIN messages on (users.id = messages.userId) where  ORDER BY datetime LIMIT 1 ")
-    @Query("select messages.* " +
+/*    @Query("select messages.* " +
             "from messages, (select userId, max(datetime) as d from messages group by userId) as max_user " +
             "where messages.userId=max_user.userId " +
             "and messages.datetime = max_user.d;")
-    fun getLastMessages() : Flow<List<Message>>
+    fun getLastMessages() : Flow<List<Message>>*/
 
     @Delete
     suspend fun deleteUser(vararg user: User)
