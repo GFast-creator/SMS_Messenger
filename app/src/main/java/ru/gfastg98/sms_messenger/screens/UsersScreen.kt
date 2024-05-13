@@ -36,6 +36,7 @@ import ru.gfastg98.sms_messenger.ROUTS
 import ru.gfastg98.sms_messenger.User
 import ru.gfastg98.sms_messenger.isToday
 import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
+import ru.gfastg98.sms_messenger.ui.theme.getInvertedColor
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -45,7 +46,7 @@ import java.util.Locale
 fun UsersScreen(
     navController: NavHostController,
     modifier: Modifier = Modifier,
-    viewModel: MessengerViewModel = viewModel(),
+    viewModel: MessengerViewModel,
     users: List<User>,
     messages: List<Message> = emptyList(),
     deleteList: List<User>
@@ -88,7 +89,7 @@ fun UsersScreen(
                     }
                 ),
                 user = users[index],
-                lastMessage = messages.findLast { m -> m.threadId == users[index].id },
+                lastMessage = messages.find { m -> m.threadId == users[index].id.toInt() },
                 selected = users[index] in deleteList
             )
         }
@@ -98,7 +99,7 @@ fun UsersScreen(
 @Preview(showBackground = true)
 @Composable
 private fun UserCardPrev() {
-    UserCard(user = User(), selected = true)
+    UserCard(user = User(), selected = false)
 }
 
 @Composable
@@ -125,7 +126,7 @@ fun UserCard(
             Box(
                 modifier = Modifier
                     .size(64.dp)
-                    .clip(CircleShape),
+                    .clip(RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
@@ -134,14 +135,17 @@ fun UserCard(
                         .fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = user.name.run {
+                    Text(
+                        text = user.name.run {
                         if (isEmpty()) ""
                         else uppercase()
                             .split(" ")
                             .joinToString(separator = "") { s ->
                                 s[0].toString()
                             }
-                    })
+                        },
+                        color = getInvertedColor(color = user.color)
+                    )
                 }
             }
             Column(
@@ -160,7 +164,7 @@ fun UserCard(
                             fontWeight = FontWeight.Bold,
                             fontStyle = FontStyle.Italic,
                             text =
-                            if (lastMessage.datetime.isToday())
+                            if (lastMessage.datetime.isToday)
                                 SimpleDateFormat("HH:mm", Locale.ROOT)
                                     .format(lastMessage.datetime)
                             else SimpleDateFormat(

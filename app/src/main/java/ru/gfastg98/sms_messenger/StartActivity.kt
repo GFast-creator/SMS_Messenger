@@ -71,9 +71,9 @@ class StartActivity : ComponentActivity() {
                     ActivityResultContracts.RequestPermission()
                 ) { isGranted ->
                     if (isGranted) {
-                        Log.d("ExampleScreen", "PERMISSION GRANTED")
+                        Log.d(TAG, "PERMISSION GRANTED")
                     } else {
-                        Log.d("ExampleScreen", "PERMISSION DENIED")
+                        Log.d(TAG, "PERMISSION DENIED")
                     }
                 }
 
@@ -124,8 +124,8 @@ class StartActivity : ComponentActivity() {
 
                 if (isDialog) {
                     AlertDialog(
-                        title = { Text(text = "Разрешения") },
-                        text = { Text(text = "Для работы приложения нужны разрешения") },
+                        title = { Text(text = stringResource(R.string.permissions)) },
+                        text = { Text(text = stringResource(R.string.permission_dialog_text)) },
                         onDismissRequest = {},
                         confirmButton = {
                             Button(onClick = {

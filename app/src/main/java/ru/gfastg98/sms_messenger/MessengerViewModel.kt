@@ -14,10 +14,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-
-typealias UsersTable = Flow<List<User>>
-typealias MessagesTable = Flow<List<Message>>
-
 enum class Commands {
     //GET_USERS, GET_MESSAGES, GET_LAST_MESSAGE,
 
@@ -37,9 +33,14 @@ data class SMSTable(
 )
 
 @HiltViewModel
-open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : ViewModel() {
-
-    private val TAG: String = MessengerViewModel::class.java.simpleName
+class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : ViewModel() {
+    companion object{
+        const val TAG = "MessengerViewModel"
+        var instance: MessengerViewModel? = null
+    }
+    init {
+        instance = this
+    }
 
     @Inject
     lateinit var vibrator: Vibrator
@@ -97,7 +98,7 @@ open class MessengerViewModel @Inject constructor(private val _dao: MessageDao) 
             Commands.UPDATE_SMS -> _smsTable.value = Repository.refreshSmsInbox(data as Context)
             Commands.SEND_SMS -> {
                 data as Array<Any>
-                Repository.sendSMS(data[0] as Context, data[1] as String, data[2] as String)
+                Repository.sendSMS(data[0] as Context, data[1] as String, data[2] as String, data[3] as Boolean)
             }
 
             Commands.GET_CONTACTS -> return Repository.getContactList(data as Context) as T

@@ -9,14 +9,19 @@ import android.util.Log
 
 
 class SMSBroadcastReceiver : BroadcastReceiver() {
+    companion object {
+        private const val TAG = "SMSBroadcastReceiver"
+        const val NEW_MESSAGE_ACTION = "NEW_MESSAGE"
+    }
 
     override fun onReceive(context: Context?, intent: Intent) {
         Log.i(TAG, "onReceive: broadcast received: ${intent.action}")
 
+
         //Toast.makeText(context, "test", Toast.LENGTH_SHORT).show()
         when (intent.action) {
-            SMS_RECEIVED_ACTION, "NEW_MESSAGE" -> {
-                val bundle = intent.extras
+            SMS_RECEIVED_ACTION, NEW_MESSAGE_ACTION -> {
+                /*val bundle = intent.extras
                 if (bundle != null) {
                     // get sms objects
                     val pduArray = (bundle["pdus"] as Array<*>?)!!
@@ -24,10 +29,7 @@ class SMSBroadcastReceiver : BroadcastReceiver() {
                         return
                     }
                     // large message might be broken into many
-    //                val messages = arrayOfNulls<SmsMessage>(
-    //                    pduArray.size
-    //                )
-                    var messages = mutableListOf<SmsMessage>()
+                    val messages = mutableListOf<SmsMessage>()
 
                     val sb = StringBuilder()
                     for (i in pduArray.indices) {
@@ -35,21 +37,18 @@ class SMSBroadcastReceiver : BroadcastReceiver() {
                         messages += smsMessage
                         sb.append(smsMessage.messageBody)
                     }
+
                     val sender = messages[0].originatingAddress
                     val message = sb.toString()
-                    //Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                    // prevent any other broadcast receivers from receiving broadcast
 
-                    Log.i(TAG, "onReceive: mainActivity is: ${MainActivity.instance}")
-                    abortBroadcast()
-                    Log.i(TAG, "onReceive: message is: $message")
-                }
-                MainActivity.instance?.updateSms()
+
+
+                }*/
+                Log.i(TAG, "onReceive: mainActivity is: ${MessengerViewModel.instance}")
+                //MainActivity.instance?.updateSms()
+                MessengerViewModel.instance?.doCommand<Nothing>(Commands.UPDATE_SMS, context)
+                abortBroadcast()
             }
         }
-    }
-
-    companion object {
-        private const val TAG = "SMSBroadcastReceiver"
     }
 }

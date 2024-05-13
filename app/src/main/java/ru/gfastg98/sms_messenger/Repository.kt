@@ -7,6 +7,7 @@ import android.content.Intent
 import android.provider.ContactsContract
 import android.provider.Telephony
 import android.telephony.SmsManager
+import android.util.Log
 import android.widget.Toast
 import ru.gfastg98.sms_messenger.ui.theme.colorPool
 import java.util.Date
@@ -35,8 +36,10 @@ class Repository {
                 )
                     ?: return SMSTable()
 
-            val indexBody = cursor.getColumnIndex(Telephony.Sms.BODY)
+
             val indexAddress = cursor.getColumnIndex(Telephony.Sms.ADDRESS)
+            val indexBody = cursor.getColumnIndex(Telephony.Sms.BODY)
+
             val indexType = cursor.getColumnIndex(Telephony.Sms.TYPE)
             val indexDate = cursor.getColumnIndex(Telephony.Sms.DATE)
             val indexThreadId = cursor.getColumnIndex(Telephony.Sms.THREAD_ID)
@@ -44,7 +47,8 @@ class Repository {
             if (indexBody < 0 || !cursor.moveToFirst()) return SMSTable()
 
             do {
-                val address = cursor.getString(indexAddress)
+                val number = cursor.getString(indexAddress)
+
                 val message = cursor.getString(indexBody)
                 val type = cursor.getInt(indexType)
                 val date = cursor.getLong(indexDate)
@@ -57,11 +61,18 @@ class Repository {
                     type = type
                 )
 
-                val userIndex = users.indexOfFirst { u -> u.name == address }
-                if (userIndex == -1) {
-                    val newUser = User(threadId , name = address)
-                    newUser.color = colorPool[newUser.id % 6]
-                    users += newUser
+                val isUserExist = users.any { u -> u.num == number }
+                if (!isUserExist) {
+                    users += User(
+                        id = threadId.toLong(),
+                        name = if (number.isNumber)
+                            getContactNameFromPhoneNumber(context, number) ?: number
+                        else number,
+                        num = if (!number.isNumber) {
+                            getPhoneNumberFromContactName(context, number) ?: number
+                        } else number,
+                        color = colorPool[threadId % 6]
+                    )
                 }
             } while (cursor.moveToNext())
 
@@ -69,7 +80,7 @@ class Repository {
             return SMSTable(users, messages)
         }
 
-        fun sendSMS(context: Context, message: String, to: String) {
+        fun sendSMS(context: Context, message: String, address: String, isDigits: Boolean) {
             try {
                 val smsManager: SmsManager = context.getSystemService(SmsManager::class.java)
                 val pendingIntent = PendingIntent.getBroadcast(
@@ -80,16 +91,28 @@ class Repository {
                     PendingIntent.FLAG_IMMUTABLE
                 )
 
+                val transformedAddress: String = if (isDigits)
+                    address.replace(
+                        regex = Regex("[^0-9]"),
+                        replacement = ""
+                    )
+                else address
+
                 smsManager.sendTextMessage(
-                    to,
+                    transformedAddress,
                     null,
                     message,
                     pendingIntent,
                     pendingIntent
                 )
 
-                Toast.makeText(context, "Your sms has successfully sent!", Toast.LENGTH_SHORT)
-                    .show()
+                Toast.makeText(
+                    context,
+                    "Your sms has successfully sent!\n to: $transformedAddress, message: $message",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                Log.i(TAG, "sendSMS: message sent to: $transformedAddress, \n message: $message")
             } catch (e: Exception) {
                 Toast.makeText(context, "Your sms has failed...", Toast.LENGTH_LONG).show()
                 e.printStackTrace()
@@ -111,10 +134,15 @@ class Repository {
                 if (cur.moveToFirst()) {
                     do {
                         try {
-                            val id =
-                                cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID))
-                            val name =
-                                cur.getString(cur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME))
+                            val newUser = User()
+                            newUser.id =
+                                cur.getLong(
+                                    cur.getColumnIndex(ContactsContract.Contacts._ID)
+                                )
+                            newUser.name =
+                                cur.getString(
+                                    cur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME)
+                                )
                             if (cur.getInt(
                                     cur.getColumnIndex(
                                         ContactsContract.Contacts.HAS_PHONE_NUMBER
@@ -125,11 +153,11 @@ class Repository {
                                     ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
                                     null,
                                     ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
-                                    arrayOf<String>(id),
+                                    arrayOf(newUser.id.toString()),
                                     null
-                                ) ?: continue
+                                ) ?: break
                                 pCur.moveToFirst()
-                                val num =
+                                newUser.num =
                                     pCur.getString(
                                         pCur.getColumnIndex(
                                             ContactsContract.CommonDataKinds.Phone.NUMBER
@@ -139,8 +167,8 @@ class Repository {
                                 pCur.close()
                             }
 
-                            list += User(name = name)
-                        }catch (e:Exception){
+                            list += newUser
+                        } catch (e: Exception) {
                             continue
                         }
                     } while (cur.moveToNext())
@@ -151,5 +179,49 @@ class Repository {
             }
             return list
         }
+
+        @SuppressLint("Range")
+        fun getContactNameFromPhoneNumber(context: Context, number: String): String? {
+            Log.i(TAG, "getContactNameFromPhoneNumber: searching: $number")
+            var contactName: String? = null
+            val cursor = context.contentResolver.query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME),
+                "${ContactsContract.CommonDataKinds.Phone.NUMBER} = ?",
+                arrayOf(number),
+                null
+            )
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    contactName = it.getString(
+                        it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                    )
+                }
+            }
+            Log.i(TAG, "getContactNameFromPhoneNumber: founded: $contactName")
+            return contactName
+        }
+
+        @SuppressLint("Range")
+        fun getPhoneNumberFromContactName(context: Context, contactName: String): String? {
+            Log.i(TAG, "getPhoneNumberFromContactName: searching: $contactName")
+            var phoneNumber: String? = null
+            val cursor = context.contentResolver.query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+                "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} = ?",
+                arrayOf(contactName),
+                null
+            )
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    phoneNumber = it.getString(it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
+                }
+            }
+            cursor?.close()
+            Log.i(TAG, "getContactNameFromPhoneNumber: founded: $phoneNumber")
+            return phoneNumber
+        }
+
     }
 }

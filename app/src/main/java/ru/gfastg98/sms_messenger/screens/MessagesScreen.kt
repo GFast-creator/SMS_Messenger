@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DoneAll
+import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.SyncProblem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,8 +42,11 @@ import ru.gfastg98.sms_messenger.Message
 import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.R
 import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
+import ru.gfastg98.sms_messenger.ui.theme.SpeechBubbleShape
 import ru.gfastg98.sms_messenger.ui.theme.checkColor
 import java.util.Date
+
+const val TAG = "MessagesScreen"
 
 @Composable
 fun MessagesScreen(
@@ -51,7 +55,6 @@ fun MessagesScreen(
     userAddress: String?,
     modifier: Modifier
 ) {
-    val TAG = "MessagesScreen"
     if (userAddress == null) {
         Text(text = stringResource(R.string.error_user_is_not_found))
         return
@@ -79,7 +82,8 @@ fun MessagesScreen(
                     arrayOf(
                         context,
                         message,
-                        userAddress
+                        userAddress,
+                        false
                     )
                 )
             }
@@ -110,7 +114,7 @@ fun MessagesScreen(
                         }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Send"
+                                contentDescription = stringResource(R.string.send)
                             )
                         }
                     }
@@ -138,23 +142,30 @@ fun MessageCard(
         Box(
             Modifier
                 .clip(
-                    RoundedCornerShape(
+                    /*RoundedCornerShape(
                         topEnd = 16.dp,
                         topStart = 16.dp,
                         bottomStart = if (message.type == Telephony.Sms.MESSAGE_TYPE_INBOX) 0.dp else 16.dp,
                         bottomEnd = if (message.type == Telephony.Sms.MESSAGE_TYPE_INBOX) 16.dp else 0.dp
-                    )
+                    )*/
+                    SpeechBubbleShape(isInboxMessage = message.type == Telephony.Sms.MESSAGE_TYPE_INBOX)
                 )
         ) {
             Box(
                 modifier
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    ).run {
+                        if (message.type == Telephony.Sms.MESSAGE_TYPE_INBOX)
+                            padding(start = 12.dp)
+                        else
+                            padding(end = 12.dp)
+                    }
             ) {
                 Text(
                     modifier = Modifier
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        ,
                     text = message.text
                 )
                 if (message.type != Telephony.Sms.MESSAGE_TYPE_INBOX) {
@@ -163,15 +174,15 @@ fun MessageCard(
                             .align(Alignment.BottomEnd)
                             .size(16.dp)
                             .padding(end = 4.dp, bottom = 2.dp),
-                        imageVector = when (message.type){
+                        imageVector = when (message.type) {
                             Telephony.Sms.MESSAGE_TYPE_FAILED -> Icons.Rounded.SyncProblem
-                            Telephony.Sms.MESSAGE_TYPE_SENT -> Icons.Rounded.Check
-                            Telephony.Sms.MESSAGE_TYPE_OUTBOX -> Icons.Rounded.DoneAll
-                            else -> Icons.Rounded.DoneAll
+                            Telephony.Sms.MESSAGE_TYPE_OUTBOX -> Icons.Rounded.Check
+                            Telephony.Sms.MESSAGE_TYPE_SENT -> Icons.Rounded.DoneAll
+                            else -> Icons.Rounded.Sync
                         },
                         contentDescription = null,
-                        tint = if (message.type != Telephony.Sms.MESSAGE_TYPE_FAILED) checkColor
-                        else ItemColorRed
+                        tint = if (message.type == Telephony.Sms.MESSAGE_TYPE_FAILED) ItemColorRed
+                        else checkColor
                     )
                 }
             }
@@ -188,7 +199,7 @@ private fun MessageCardPreview() {
             threadId = 0,
             datetime = Date(),
             check = false,
-            type = Telephony.Sms.MESSAGE_TYPE_FAILED
+            type = Telephony.Sms.MESSAGE_TYPE_SENT
         )
     )
 }

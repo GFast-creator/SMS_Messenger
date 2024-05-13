@@ -52,7 +52,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_UPDATE
 import ru.gfastg98.sms_messenger.Commands.SWITCH_DIALOG_ON
 import ru.gfastg98.sms_messenger.Commands.UPDATE_SMS
-import ru.gfastg98.sms_messenger.screens.AddDialog
 import ru.gfastg98.sms_messenger.screens.MessageCard
 import ru.gfastg98.sms_messenger.screens.MessagesScreen
 import ru.gfastg98.sms_messenger.screens.UserCard
@@ -66,27 +65,10 @@ enum class ROUTS(val r: String) {
     USERS("users"), MESSAGES("messages")
 }
 
-fun ContentResolver.strQuery(parse: String): Cursor? =
-    query(Uri.parse(parse), null, null, null)
-
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    companion object {
-        var instance: MainActivity? = null
-            private set
-    }
-
-    override fun onStart() {
-        super.onStart()
-        instance = this
-    }
-
     private val viewModel: MessengerViewModel by viewModels()
-
-    fun updateSms() {
-        viewModel.doCommand<Nothing>(UPDATE_SMS, applicationContext)
-    }
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,30 +78,34 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 val appName = stringResource(id = R.string.app_name)
-                var title by remember{ mutableStateOf("") }
-                var topAppBarColor by remember{ mutableStateOf(Color.Unspecified) }
+                var title by remember { mutableStateOf("") }
+                var topAppBarColor by remember { mutableStateOf(Color.Unspecified) }
+                var addButtonVisibility by remember{ mutableStateOf(true)}
 
                 val isDialog by viewModel.isDialogStateFlow.collectAsState()
                 val deleteList by viewModel.deleteUsersStateFlow.collectAsState()
 
-                updateSms()
+                viewModel.doCommand<Nothing>(UPDATE_SMS, applicationContext) // обновление списка sms
                 val messagesList by viewModel.smsTable.collectAsState()
-                val contacts = viewModel.doCommand<List<User>>(Commands.GET_CONTACTS, LocalContext.current)!!
+                val contacts =
+                    viewModel.doCommand<List<User>>(Commands.GET_CONTACTS, LocalContext.current)!!
 
-                navController.addOnDestinationChangedListener{ _, navDestination, bundle ->
-                    if (navDestination.route?.contains(ROUTS.USERS.r) != false){
+                navController.addOnDestinationChangedListener { _, navDestination, bundle ->
+                    if (navDestination.route?.contains(ROUTS.USERS.r) != false) {
                         title = appName
                         topAppBarColor = Color.Unspecified
+                        addButtonVisibility = true
                     } else {
-                        val user = messagesList.users.firstOrNull{u -> u.id == bundle?.getInt("userId")}
-                        title = user?.name?:appName
-                        topAppBarColor = user?.color?: Color.Unspecified
+                        val user =
+                            messagesList.users.firstOrNull { u -> u.id == bundle?.getLong("userId") }
+                        title = user?.name ?: appName
+                        topAppBarColor = user?.color ?: Color.Unspecified
+                        addButtonVisibility = false
                     }
                 }
 
-
                 if (isDialog) {
-                    AddDialog(viewModel,navController, contacts)
+                    AddDialog(viewModel, navController, contacts)
                 }
 
                 Scaffold(
@@ -172,16 +158,17 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                     floatingActionButton = {
-                        FloatingActionButton(
-                            onClick = {
-                                //navController.navigate(ROUTS.MESSAGES.r + "/-1")
-                                viewModel.doCommand<Nothing>(SWITCH_DIALOG_ON)
-                            }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Новое сообщение"
-                            )
-                        }
+                        if (addButtonVisibility)
+                            FloatingActionButton(
+                                onClick = {
+                                    //navController.navigate(ROUTS.MESSAGES.r + "/-1")
+                                    viewModel.doCommand<Nothing>(SWITCH_DIALOG_ON)
+                                }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = stringResource(R.string.new_message)
+                                )
+                            }
                     },
                     modifier = Modifier.fillMaxSize(),
                     containerColor = MaterialTheme.colorScheme.background
@@ -225,16 +212,18 @@ class MainActivity : ComponentActivity() {
                             },
                             arguments = listOf(
                                 navArgument("userId") {
-                                    type = NavType.IntType
+                                    type = NavType.LongType
                                 }
                             )
                         ) { navBackStack ->
-                            val userId = navBackStack.arguments?.getInt("userId")
+                            val userId = navBackStack.arguments?.getLong("userId")
                             val currentUser = messagesList.users.firstOrNull { u -> u.id == userId }
 
                             MessagesScreen(
-                                messages = messagesList.messages.filter { it.threadId == userId },
-                                userAddress = currentUser?.name,
+                                messages = userId?.let {
+                                    messagesList.messages.filter { m -> m.threadId == it.toInt() }
+                                } ?: emptyList(),
+                                userAddress = currentUser?.num,
                                 modifier = modifier,
                                 viewModel = viewModel
                             )
@@ -249,13 +238,13 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MessageCardPreview() {
         Column {
-            repeat(10){index ->
+            repeat(10) { index ->
                 MessageCard(
                     message = Message(
                         text = "19\n18",
                         datetime = Date(),
                         threadId = 6,
-                        type = if (index % 3 == 0)Telephony.Sms.MESSAGE_TYPE_OUTBOX
+                        type = if (index % 3 == 0) Telephony.Sms.MESSAGE_TYPE_OUTBOX
                         else Telephony.Sms.MESSAGE_TYPE_INBOX
                     )
                 )
@@ -288,23 +277,31 @@ class MainActivity : ComponentActivity() {
             )
             UserCard(
                 user = User(),
-                lastMessage = Message(text = "123", datetime = Date(), threadId = 0, type = Telephony.Sms.MESSAGE_TYPE_OUTBOX)
+                lastMessage = Message(
+                    text = "123",
+                    datetime = Date(),
+                    threadId = 0,
+                    type = Telephony.Sms.MESSAGE_TYPE_OUTBOX
+                )
             )
             UserCard(
                 user = User(),
-                lastMessage = Message(text = "123", datetime = Date(), threadId = 0, type = Telephony.Sms.MESSAGE_TYPE_INBOX)
+                lastMessage = Message(
+                    text = "123",
+                    datetime = Date(),
+                    threadId = 0,
+                    type = Telephony.Sms.MESSAGE_TYPE_INBOX
+                )
             )
             UserCard(
                 user = User(),
-                lastMessage = Message(text = "123", datetime = Date(), threadId = 0, type = Telephony.Sms.MESSAGE_TYPE_INBOX)
+                lastMessage = Message(
+                    text = "123",
+                    datetime = Date(),
+                    threadId = 0,
+                    type = Telephony.Sms.MESSAGE_TYPE_INBOX
+                )
             )
         }
     }
-}
-
-fun Date.isToday(): Boolean {
-    return date == Date().date &&
-            month == Date().month &&
-            year == Date().year
-
 }

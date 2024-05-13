@@ -23,29 +23,6 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import java.util.Date
 
-val String.color: Color
-    get() =
-        try {
-            Color(android.graphics.Color.parseColor("#$this"))
-        } catch (e: Exception) {
-            e.message?.let { Log.e("parser", it) }
-            Color(0)
-        }
-
-val Color.str: String
-    get() =
-        try {
-            val red = this.red * 255
-            val green = this.green * 255
-            val blue = this.blue * 255
-            String.format("%02x%02x%02x", red.toInt(), green.toInt(), blue.toInt())
-        } catch (e: Exception) {
-            e.message?.let { Log.e("parser", it) }
-            "0"
-        }
-
-
-
 
 @ProvidedTypeConverter
 class Converters {
@@ -61,7 +38,7 @@ class Converters {
     @TypeConverter
     fun colorToString(color: Color?): String {
         if (color == null) return "0"
-        val c = color.str
+        val c = color.string
         Log.i(TAG, "colorToString: $c")
         return c
     }
@@ -105,8 +82,9 @@ class Message(
 data class User(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(index = true)
-    var id: Int = 0,
+    var id: Long = 0,
     var name: String = "test name",
+    var num: String? = null,
     var color: Color = Color(0xFFFF9800)
 )
 
