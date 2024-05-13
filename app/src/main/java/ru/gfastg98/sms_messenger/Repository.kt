@@ -66,7 +66,8 @@ class Repository {
                     users += User(
                         id = threadId.toLong(),
                         name = if (number.isNumber)
-                            getContactNameFromPhoneNumber(context, number) ?: number
+                            getContactNameFromPhoneNumber(context, number)
+                                ?: number
                         else number,
                         num = if (!number.isNumber) {
                             getPhoneNumberFromContactName(context, number) ?: number

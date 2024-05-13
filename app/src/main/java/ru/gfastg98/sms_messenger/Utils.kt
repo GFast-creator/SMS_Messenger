@@ -31,7 +31,7 @@ val Color.string: String
         }
 
 val String.isNumber
-    get() = matches(Regex(pattern = "^[0-9+]+$")) && length in arrayOf(9,10)
+    get() = matches(Regex(pattern = "^[0-9+]+$")) /*&& length in arrayOf(9,10)*/
 
 val String.checkColor : Boolean
     get() {
