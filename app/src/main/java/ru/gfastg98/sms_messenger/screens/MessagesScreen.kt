@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -38,9 +37,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ru.gfastg98.sms_messenger.Commands
-import ru.gfastg98.sms_messenger.Message
 import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.R
+import ru.gfastg98.sms_messenger.room.Message
 import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
 import ru.gfastg98.sms_messenger.ui.theme.SpeechBubbleShape
 import ru.gfastg98.sms_messenger.ui.theme.checkColor

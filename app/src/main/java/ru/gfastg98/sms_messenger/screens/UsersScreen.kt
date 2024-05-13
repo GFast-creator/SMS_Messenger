@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,15 +25,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_MINUS
 import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_PLUS
-import ru.gfastg98.sms_messenger.Message
 import ru.gfastg98.sms_messenger.MessengerViewModel
-import ru.gfastg98.sms_messenger.ROUTS
-import ru.gfastg98.sms_messenger.User
+import ru.gfastg98.sms_messenger.activites.ROUTS
 import ru.gfastg98.sms_messenger.isToday
+import ru.gfastg98.sms_messenger.room.Message
+import ru.gfastg98.sms_messenger.room.User
 import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
 import ru.gfastg98.sms_messenger.ui.theme.getInvertedColor
 import java.text.SimpleDateFormat
@@ -156,6 +154,9 @@ fun UserCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
+
+                val FORMAT_DATE = "dd.MM.yyyy"
+                val FORMAT_TIME = "HH:mm"
 
                 if (lastMessage != null)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

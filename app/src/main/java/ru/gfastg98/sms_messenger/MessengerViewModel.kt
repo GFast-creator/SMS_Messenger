@@ -4,14 +4,14 @@ import android.content.Context
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import ru.gfastg98.sms_messenger.room.Message
+import ru.gfastg98.sms_messenger.room.MessageDao
+import ru.gfastg98.sms_messenger.room.User
 import javax.inject.Inject
 
 enum class Commands {
@@ -24,7 +24,9 @@ enum class Commands {
 
     DELETE_LIST_UPDATE, DELETE_LIST_PLUS, DELETE_LIST_MINUS,
 
-    UPDATE_SMS, SEND_SMS, ADD_USER, GET_CONTACTS
+    UPDATE_SMS, SEND_SMS, ADD_USER, GET_CONTACTS,
+
+    DELETE_THREAD, DELETE_MESSAGES
 }
 
 data class SMSTable(
@@ -103,6 +105,13 @@ class MessengerViewModel @Inject constructor(private val _dao: MessageDao) : Vie
 
             Commands.GET_CONTACTS -> return Repository.getContactList(data as Context) as T
             Commands.ADD_USER -> _smsTable.value.users += data as User
+            Commands.DELETE_THREAD -> {
+                data as Array<*>
+                Repository.deleteThreadFromId(data[0] as Context, data[1] as Long)
+            }
+            Commands.DELETE_MESSAGES -> {
+                TODO()
+            }
         }
         return null
     }

@@ -1,6 +1,5 @@
 package ru.gfastg98.sms_messenger
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +35,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import ru.gfastg98.sms_messenger.Commands.SEND_SMS
 import ru.gfastg98.sms_messenger.Commands.SWITCH_DIALOG_OFF
+import ru.gfastg98.sms_messenger.room.User
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

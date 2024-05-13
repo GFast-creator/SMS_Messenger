@@ -9,6 +9,8 @@ import android.provider.Telephony
 import android.telephony.SmsManager
 import android.util.Log
 import android.widget.Toast
+import ru.gfastg98.sms_messenger.room.Message
+import ru.gfastg98.sms_messenger.room.User
 import ru.gfastg98.sms_messenger.ui.theme.colorPool
 import java.util.Date
 
@@ -25,6 +27,7 @@ class Repository {
                 context.contentResolver.query(
                     Telephony.Sms.CONTENT_URI,
                     arrayOf(
+                        Telephony.Sms._ID,
                         Telephony.Sms.ADDRESS,
                         Telephony.Sms.BODY,
                         Telephony.Sms.TYPE,
@@ -37,6 +40,7 @@ class Repository {
                     ?: return SMSTable()
 
 
+            val indexId = cursor.getColumnIndex(Telephony.Sms._ID)
             val indexAddress = cursor.getColumnIndex(Telephony.Sms.ADDRESS)
             val indexBody = cursor.getColumnIndex(Telephony.Sms.BODY)
 
@@ -47,6 +51,7 @@ class Repository {
             if (indexBody < 0 || !cursor.moveToFirst()) return SMSTable()
 
             do {
+                val id = cursor.getLong(indexId)
                 val number = cursor.getString(indexAddress)
 
                 val message = cursor.getString(indexBody)
@@ -55,6 +60,7 @@ class Repository {
                 val threadId = cursor.getInt(indexThreadId)
 
                 messages += Message(
+                    id = id,
                     text = message,
                     datetime = Date(date),
                     threadId = threadId,
@@ -222,6 +228,46 @@ class Repository {
             cursor?.close()
             Log.i(TAG, "getContactNameFromPhoneNumber: founded: $phoneNumber")
             return phoneNumber
+        }
+
+        @SuppressLint("Range")
+        fun deleteThreadFromId(context: Context, threadId: Long) : Int {
+            try {
+                Log.i(TAG, "Deleting SMS from inbox")
+                /*val cursor = context.contentResolver.query(
+                    Telephony.Sms.CONTENT_URI,
+                    arrayOf(
+                        Telephony.Sms._ID,
+                        Telephony.Sms.THREAD_ID,
+                    ),
+                    "${Telephony.Sms.THREAD_ID} = ?",
+                    arrayOf(threadId.toString()),
+                    null
+                )
+                val deleteMessageList = mutableListOf<String>()
+                cursor?.use { c ->
+                    if (c.moveToFirst()) {
+                        do {
+                            deleteMessageList += c.getString(c.getColumnIndex(Telephony.Sms._ID))
+                        } while (c.moveToNext())
+                    }
+                }*/
+
+                val v = context.contentResolver.delete(
+                    Telephony.Sms.CONTENT_URI,
+                    "${Telephony.Sms.THREAD_ID} = ?",
+                    arrayOf(
+                        threadId.toString()
+                    )
+                )
+
+                Log.i(TAG, "deleteThreadFromId: $v messages has been deleted")
+                return v
+
+            } catch (e: java.lang.Exception) {
+                Log.i(TAG, "Could not delete SMS from inbox: " + e.message)
+            }
+            return 0
         }
 
     }

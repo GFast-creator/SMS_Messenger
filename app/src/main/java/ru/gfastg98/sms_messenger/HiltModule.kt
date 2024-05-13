@@ -9,6 +9,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import ru.gfastg98.sms_messenger.room.AppDatabase
+import ru.gfastg98.sms_messenger.room.MessageDao
 import javax.inject.Singleton
 
 @Module

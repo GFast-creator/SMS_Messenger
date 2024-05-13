@@ -1,8 +1,5 @@
-package ru.gfastg98.sms_messenger
+package ru.gfastg98.sms_messenger.activites
 
-import android.content.ContentResolver
-import android.database.Cursor
-import android.net.Uri
 import android.os.Bundle
 import android.provider.Telephony
 import androidx.activity.ComponentActivity
@@ -49,9 +46,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dagger.hilt.android.AndroidEntryPoint
+import ru.gfastg98.sms_messenger.AddDialog
+import ru.gfastg98.sms_messenger.Commands
 import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_UPDATE
 import ru.gfastg98.sms_messenger.Commands.SWITCH_DIALOG_ON
 import ru.gfastg98.sms_messenger.Commands.UPDATE_SMS
+import ru.gfastg98.sms_messenger.MessengerViewModel
+import ru.gfastg98.sms_messenger.R
+import ru.gfastg98.sms_messenger.room.Message
+import ru.gfastg98.sms_messenger.room.User
 import ru.gfastg98.sms_messenger.screens.MessageCard
 import ru.gfastg98.sms_messenger.screens.MessagesScreen
 import ru.gfastg98.sms_messenger.screens.UserCard

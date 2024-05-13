@@ -1,8 +1,11 @@
-package ru.gfastg98.sms_messenger
+package ru.gfastg98.sms_messenger.activites
 
+import android.app.Activity
+import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Telephony
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -29,6 +32,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
+import ru.gfastg98.sms_messenger.R
 import ru.gfastg98.sms_messenger.ui.theme.SMSMessengerTheme
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -92,12 +96,16 @@ class StartActivity : ComponentActivity() {
 
                 val scope = rememberCoroutineScope()
                 val permissionFlow = flow {
+
                     while (true) {
+
                         if (permissions.all { permission ->
                                 (ContextCompat.checkSelfPermission(
                                     this@StartActivity, permission
                                 ) == PackageManager.PERMISSION_GRANTED)
                             }) break
+
+
 
                         permissions.forEach { permission ->
                             if (ContextCompat.checkSelfPermission(
@@ -109,6 +117,15 @@ class StartActivity : ComponentActivity() {
                         }
                         delay(200.milliseconds)
                     }
+
+                    val l = Telephony.Sms.getDefaultSmsPackage(applicationContext)
+                    if (!l.equals(packageName)) {
+                        val roleManager = getSystemService(RoleManager::class.java)
+                        val roleRequestIntent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
+                        startActivityForResult(roleRequestIntent, 12)
+                        Log.i(TAG, "onCreate: starting activity ")
+                    }
+
                     delay(3.seconds)
                     emit(Unit)
                 }.onCompletion {
@@ -137,6 +154,18 @@ class StartActivity : ComponentActivity() {
                         }
                     )
                 }
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        Log.i(TAG, "onActivityResult: $resultCode")
+        if (requestCode == 12) {
+            if (resultCode == Activity.RESULT_OK) {
+                
+            } else {
+                // Пользователь отказал в назначении роли
             }
         }
     }
