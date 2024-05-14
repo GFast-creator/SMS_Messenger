@@ -1,10 +1,10 @@
 <resources>
-    <string name="app_name">SMS Messenger</string>
+    <string name="app_name" translatable="false">SMS Messenger</string>
     <string name="cancel">Отмена</string>
-    <string name="ok">Oк</string>
+    <string name="ok">OК</string>
     <string name="select_all">Выделить всё</string>
     <string name="delete_selected">Удалить выделеное</string>
-    <string name="add">Добавить</string>
+    <string name="label_add">Добавить сообщение</string>
     <string name="user">Пользователь</string>
     <string name="message">Сообщение</string>
     <string name="error_empty_username">Пустое имя пользователя</string>
@@ -13,13 +13,27 @@
     <string name="error_color">Неверный цвет</string>
     <string name="title_color">Цвет (в HEX формате)</string>
     <string name="error_user_is_not_selected">Пользователь не выбран</string>
-    <string name="error_no_users">Нет пользователей…</string>
-    <string name="message_line">Сообщение…</string>
-    <string name="error_user_is_not_found">Пользователь не найден</string>
+    <string name="error_no_contacts">Нет контактов</string>
+    <string name="label_message_line">Сообщение</string>
+    <string name="error_user_is_not_found">Нет сообщений от пользователя</string>
     <string name="title_activity_start">StartActivity</string>
     <string name="permissions">Разрешения</string>
     <string name="permission_dialog_text">Для работы приложения нужны разрешения</string>
     <string name="new_message">Новое сообщение</string>
     <string name="send">Отправить</string>
     <string name="error_number">Неверный номер</string>
+    <string name="error_SMS_default">Для работы требуеться установить приложение как по умолчанию для СМС в настройках</string>
+    <string name="type_inbox">Входящие</string>
+    <string name="type_sent">Отправлено</string>
+    <string name="type_draft">Черновик</string>
+    <string name="type_outbox">Bходящие</string>
+    <string name="type_failed">Ошибка</string>
+    <string name="type_queued">В очереди</string>
+    <string name="label_message_type">Тип сообщения</string>
+    <string name="label_phone_number">Номер телефона</string>
+    <string name="label_for">Для</string>
+    <string name="label_from_contacts">Из контактов</string>
+    <string name="label_new">Новый</string>
+    <string name="label_select_user">Выберите пользователя из контактов</string>
+    <string name="thread_successfully_sent">Your sms has successfully sent!  to: %1$s, message: %2$sСообщение успешно отправлено!  Для: %1$s, сообщение: %2$s</string>
 </resources>

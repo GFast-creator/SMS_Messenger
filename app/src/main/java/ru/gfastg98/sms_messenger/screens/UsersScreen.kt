@@ -12,13 +12,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -26,15 +27,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_MINUS
-import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_PLUS
-import ru.gfastg98.sms_messenger.Message
+import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_USERS_MINUS
+import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_USERS_PLUS
 import ru.gfastg98.sms_messenger.MessengerViewModel
-import ru.gfastg98.sms_messenger.ROUTS
-import ru.gfastg98.sms_messenger.User
+import ru.gfastg98.sms_messenger.activites.ROUTS
 import ru.gfastg98.sms_messenger.isToday
+import ru.gfastg98.sms_messenger.room.Message
+import ru.gfastg98.sms_messenger.room.User
 import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
 import ru.gfastg98.sms_messenger.ui.theme.getInvertedColor
 import java.text.SimpleDateFormat
@@ -51,46 +51,59 @@ fun UsersScreen(
     messages: List<Message> = emptyList(),
     deleteList: List<User>
 ) {
+    //val textMeasurer = rememberTextMeasurer()
     LazyColumn(
         modifier
             .padding(horizontal = 8.dp)
-            .fillMaxSize(),
+            .fillMaxSize()
+            .drawBehind {
+                /*if (users.isEmpty()) {
+                    drawText(
+                        textMeasurer,
+                        text = "Нет сообщений. Добавить новое",
+                        style = TextStyle(
+                            fontSize = 20.sp,
+                            color = Color.Black
+                        )
+                    )
+                } TODO: хотел добавить стрелку, указывающую на кнопку добавления*/
+            },
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(users.size, key = { it }) { index ->
+        items(users) { user ->
             UserCard(
                 modifier = Modifier.combinedClickable(
                     onClick = {
                         if (deleteList.isNotEmpty()) {
-                            if (users[index] !in deleteList) {
+                            if (user !in deleteList) {
                                 viewModel.doCommand<Nothing>(
-                                    DELETE_LIST_PLUS,
-                                    users[index]
+                                    DELETE_LIST_USERS_PLUS,
+                                    user
                                 )
                             } else {
                                 viewModel.doCommand<Nothing>(
-                                    DELETE_LIST_MINUS,
-                                    users[index]
+                                    DELETE_LIST_USERS_MINUS,
+                                    user
                                 )
                             }
                             viewModel.vibrate()
                         } else {
-                            navController.navigate("${ROUTS.MESSAGES.r}/${users[index].id}")
+                            navController.navigate("${ROUTS.MESSAGES.r}/${user.id}")
                         }
                     },
                     onLongClick = {
                         if (deleteList.isEmpty()) {
                             viewModel.doCommand<Nothing>(
-                                DELETE_LIST_PLUS,
-                                users[index]
+                                DELETE_LIST_USERS_PLUS,
+                                user
                             )
                             viewModel.vibrate()
                         }
                     }
                 ),
-                user = users[index],
-                lastMessage = messages.find { m -> m.threadId == users[index].id.toInt() },
-                selected = users[index] in deleteList
+                user = user,
+                lastMessage = messages.find { m -> m.threadId == user.id },
+                selected = user in deleteList
             )
         }
     }

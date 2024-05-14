@@ -1,7 +1,9 @@
 package ru.gfastg98.sms_messenger.screens
 
 import android.provider.Telephony
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,21 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.DoneAll
-import androidx.compose.material.icons.rounded.Sync
-import androidx.compose.material.icons.rounded.SyncProblem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,15 +36,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ru.gfastg98.sms_messenger.Commands
-import ru.gfastg98.sms_messenger.Message
 import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.R
+import ru.gfastg98.sms_messenger.messageTypeIcon
+import ru.gfastg98.sms_messenger.room.Message
 import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
 import ru.gfastg98.sms_messenger.ui.theme.SpeechBubbleShape
 import ru.gfastg98.sms_messenger.ui.theme.checkColor
 import java.util.Date
 
-const val TAG = "MessagesScreen"
 
 @Composable
 fun MessagesScreen(
@@ -55,22 +53,49 @@ fun MessagesScreen(
     userAddress: String?,
     modifier: Modifier
 ) {
-    if (userAddress == null) {
-        Text(text = stringResource(R.string.error_user_is_not_found))
-        return
-    }
+    val deleteListMessages by viewModel.deleteMessagesListStateFlow.collectAsState()
 
     Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
     ) {
+        if (userAddress == null) {
+            Text(text = stringResource(R.string.error_user_is_not_found))
+            return
+        }
         LazyColumn(
             modifier = Modifier
                 .weight(1f),
             reverseLayout = true
         ) {
             items(messages) { message ->
-                MessageCard(message = message)
+                MessageCard(
+                    message = message,
+                    onItemClick = {
+                        if (deleteListMessages.isNotEmpty()){
+                            if (message in deleteListMessages){
+                                viewModel.doCommand<Nothing>(
+                                    Commands.DELETE_LIST_MESSAGES_MINUS,
+                                    message
+                                )
+                            } else {
+                                viewModel.doCommand<Nothing>(
+                                    Commands.DELETE_LIST_MESSAGES_PLUS,
+                                    message
+                                )
+                            }
+                        }
+                    },
+                    onItemLongClick = {
+                        if (deleteListMessages.isEmpty()){
+                            viewModel.doCommand<Nothing>(
+                                Commands.DELETE_LIST_MESSAGES_PLUS,
+                                message
+                            )
+                        }
+                    },
+                    isSelected = message in deleteListMessages
+                )
             }
         }
         Row {
@@ -78,13 +103,12 @@ fun MessagesScreen(
             val context = LocalContext.current
             val onSendMessage: (message: String) -> Unit = {
                 viewModel.doCommand<Nothing>(
-                    Commands.SEND_SMS,
-                    arrayOf(
-                        context,
-                        message,
-                        userAddress,
-                        false
-                    )
+                    Commands.INSERT_SMS,
+                    context,
+                    Telephony.Sms.MESSAGE_TYPE_SENT,
+                    userAddress,
+                    message.trim()
+
                 )
             }
 
@@ -97,7 +121,7 @@ fun MessagesScreen(
                     value = message,
                     onValueChange = { message = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text(text = stringResource(R.string.message_line)) },
+                    placeholder = { Text(text = stringResource(R.string.label_message_line)) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(onSend = {
                         if (message.isNotBlank()) {
@@ -122,20 +146,31 @@ fun MessagesScreen(
             }
         }
     }
-
-
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageCard(
     modifier: Modifier = Modifier,
-    message: Message
+    message: Message,
+    isSelected: Boolean = false,
+    onItemClick: () -> Unit,
+    onItemLongClick: () -> Unit
 ) {
     Box(
         Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(8.dp)
+            .combinedClickable(
+                onClick = onItemClick,
+                onLongClick = onItemLongClick
+            )
+            .run {
+                if (isSelected)
+                    background(ItemColorRed)
+                else this
+            },
         contentAlignment = if (message.type == Telephony.Sms.MESSAGE_TYPE_INBOX)
             Alignment.CenterStart else Alignment.CenterEnd
     ) {
@@ -155,7 +190,8 @@ fun MessageCard(
                 modifier
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant
-                    ).run {
+                    )
+                    .run {
                         if (message.type == Telephony.Sms.MESSAGE_TYPE_INBOX)
                             padding(start = 12.dp)
                         else
@@ -164,8 +200,7 @@ fun MessageCard(
             ) {
                 Text(
                     modifier = Modifier
-                        .padding(16.dp)
-                        ,
+                        .padding(16.dp),
                     text = message.text
                 )
                 if (message.type != Telephony.Sms.MESSAGE_TYPE_INBOX) {
@@ -174,12 +209,8 @@ fun MessageCard(
                             .align(Alignment.BottomEnd)
                             .size(16.dp)
                             .padding(end = 4.dp, bottom = 2.dp),
-                        imageVector = when (message.type) {
-                            Telephony.Sms.MESSAGE_TYPE_FAILED -> Icons.Rounded.SyncProblem
-                            Telephony.Sms.MESSAGE_TYPE_OUTBOX -> Icons.Rounded.Check
-                            Telephony.Sms.MESSAGE_TYPE_SENT -> Icons.Rounded.DoneAll
-                            else -> Icons.Rounded.Sync
-                        },
+
+                        imageVector = message.type.messageTypeIcon,
                         contentDescription = null,
                         tint = if (message.type == Telephony.Sms.MESSAGE_TYPE_FAILED) ItemColorRed
                         else checkColor
@@ -200,6 +231,9 @@ private fun MessageCardPreview() {
             datetime = Date(),
             check = false,
             type = Telephony.Sms.MESSAGE_TYPE_SENT
-        )
+        ),
+        isSelected = true,
+        onItemClick = {},
+        onItemLongClick = {}
     )
 }
