@@ -24,7 +24,7 @@ class Message(
     var datetime: Date,
     var check: Boolean = false,
     @ColumnInfo(index = true)
-    val threadId: Int?,
+    val threadId: Long,
     val type: Int = Telephony.Sms.MESSAGE_TYPE_ALL
 )
 

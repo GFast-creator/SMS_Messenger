@@ -6,7 +6,7 @@ import android.content.Intent
 import android.provider.Telephony.Sms.Intents.SMS_RECEIVED_ACTION
 import android.util.Log
 
-class SMSBroadcastReceiver1 : BroadcastReceiver() {
+class SMSBroadcastReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "SMSBroadcastReceiver"
         const val NEW_MESSAGE_ACTION = "NEW_MESSAGE"
@@ -51,7 +51,7 @@ class SMSBroadcastReceiver1 : BroadcastReceiver() {
     }
 }
 
-class SMSBroadcastReceiver : BroadcastReceiver() {
+class SMSBroadcastReceiver1 : BroadcastReceiver() {//TODO: это заглушка для MMS
     companion object {
         private const val TAG = "SMSBroadcastReceiver"
         const val NEW_MESSAGE_ACTION = "NEW_MESSAGE"

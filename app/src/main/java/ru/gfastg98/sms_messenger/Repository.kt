@@ -2,6 +2,7 @@ package ru.gfastg98.sms_messenger
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.provider.ContactsContract
@@ -9,17 +10,18 @@ import android.provider.Telephony
 import android.telephony.SmsManager
 import android.util.Log
 import android.widget.Toast
+import ru.gfastg98.sms_messenger.SMSBroadcastReceiver.Companion.NEW_MESSAGE_ACTION
 import ru.gfastg98.sms_messenger.room.Message
 import ru.gfastg98.sms_messenger.room.User
 import ru.gfastg98.sms_messenger.ui.theme.colorPool
 import java.util.Date
 
 
-class Repository {
-    companion object {
+object Repository {
         private const val TAG = "Repository"
 
         fun refreshSmsInbox(context: Context): SMSTable {
+            Log.i(TAG, "refreshSmsInbox: sms is updating")
             val messages = mutableListOf<Message>()
             val users = mutableListOf<User>()
 
@@ -57,7 +59,7 @@ class Repository {
                 val message = cursor.getString(indexBody)
                 val type = cursor.getInt(indexType)
                 val date = cursor.getLong(indexDate)
-                val threadId = cursor.getInt(indexThreadId)
+                val threadId = cursor.getLong(indexThreadId)
 
                 messages += Message(
                     id = id,
@@ -70,7 +72,7 @@ class Repository {
                 val isUserExist = users.any { u -> u.num == number }
                 if (!isUserExist) {
                     users += User(
-                        id = threadId.toLong(),
+                        id = threadId,
                         name = if (number.isNumber)
                             getContactNameFromPhoneNumber(context, number)
                                 ?: number
@@ -78,13 +80,31 @@ class Repository {
                         num = if (!number.isNumber) {
                             getPhoneNumberFromContactName(context, number) ?: number
                         } else number,
-                        color = colorPool[threadId % 6]
+                        color = colorPool[(threadId % 6).toInt()]
                     )
                 }
             } while (cursor.moveToNext())
 
             cursor.close()
             return SMSTable(users, messages)
+        }
+
+        fun insertSMS(context: Context, type: Int, address: String, message: String){
+            Log.i(TAG, "insertSMS: params: $context, $type, $address, $message")
+            try {
+                val cv = ContentValues().apply {
+                    put(Telephony.Sms.ADDRESS, address)
+                    put(Telephony.Sms.BODY, message)
+                    put(Telephony.Sms.TYPE, type)
+                }
+
+                context.contentResolver.insert(
+                    Telephony.Sms.CONTENT_URI,
+                    cv
+                )
+            }catch (e:Exception){
+                Log.e(TAG, "insertSMS: ${e.message}", )
+            }
         }
 
         fun sendSMS(context: Context, message: String, address: String, isDigits: Boolean) {
@@ -94,13 +114,13 @@ class Repository {
                     context,
                     100,
                     Intent(context, SMSBroadcastReceiver::class.java)
-                        .apply { action = "NEW_MESSAGE" },
+                        .apply { action = NEW_MESSAGE_ACTION },
                     PendingIntent.FLAG_IMMUTABLE
                 )
 
                 val transformedAddress: String = if (isDigits)
                     address.replace(
-                        regex = Regex("[^0-9]"),
+                        regex = notDigitsAndPlus,
                         replacement = ""
                     )
                 else address
@@ -115,7 +135,11 @@ class Repository {
 
                 Toast.makeText(
                     context,
-                    "Your sms has successfully sent!\n to: $transformedAddress, message: $message",
+                    context.getString(
+                        R.string.thread_successfully_sent,
+                        transformedAddress,
+                        message
+                    ),
                     Toast.LENGTH_SHORT
                 ).show()
 
@@ -234,24 +258,6 @@ class Repository {
         fun deleteThreadFromId(context: Context, threadId: Long) : Int {
             try {
                 Log.i(TAG, "Deleting SMS from inbox")
-                /*val cursor = context.contentResolver.query(
-                    Telephony.Sms.CONTENT_URI,
-                    arrayOf(
-                        Telephony.Sms._ID,
-                        Telephony.Sms.THREAD_ID,
-                    ),
-                    "${Telephony.Sms.THREAD_ID} = ?",
-                    arrayOf(threadId.toString()),
-                    null
-                )
-                val deleteMessageList = mutableListOf<String>()
-                cursor?.use { c ->
-                    if (c.moveToFirst()) {
-                        do {
-                            deleteMessageList += c.getString(c.getColumnIndex(Telephony.Sms._ID))
-                        } while (c.moveToNext())
-                    }
-                }*/
 
                 val v = context.contentResolver.delete(
                     Telephony.Sms.CONTENT_URI,
@@ -270,5 +276,18 @@ class Repository {
             return 0
         }
 
+        fun deleteMessagesByIds(context: Context, vararg id: Long){
+            try {
+                val x = context.contentResolver.delete(
+                    Telephony.Sms.CONTENT_URI,
+                    "${Telephony.Sms._ID} in ${id.joinToString(prefix = "(", postfix = ")")}",
+
+                    null
+                )
+                Log.i(TAG, "deleteMessagesByIds: $x")
+            } catch (e:Exception){
+                Log.e(TAG, "deleteMessagesByIds: ${e.message}", )
+            }
+        }
+
     }
-}

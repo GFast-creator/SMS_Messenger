@@ -6,6 +6,6 @@ import android.os.IBinder
 
 class HeadlessSmsSendService : Service() {
     override fun onBind(intent: Intent?): IBinder? {
-        TODO("Not yet implemented")
+        TODO("Not yet implemented, заглушка")
     }
 }

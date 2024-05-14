@@ -1,6 +1,5 @@
 package ru.gfastg98.sms_messenger.activites
 
-import android.app.Activity
 import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -12,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MailOutline
@@ -63,13 +63,18 @@ class StartActivity : ComponentActivity() {
         return !g
     }
 
+    private var isSMSDefaultDialog = false
+    private var isCanceled = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             SMSMessengerTheme {
-                var isDialog by remember {
-                    mutableStateOf(!checkPermission())
-                }
+                var isDialog by remember { mutableStateOf(!checkPermission()) }
+
+                var isRoleAvailable by remember { mutableStateOf(true) }
+
+                var isCanceledCompose by remember { mutableStateOf(false) }
 
                 val launcher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestPermission()
@@ -86,26 +91,49 @@ class StartActivity : ComponentActivity() {
                         .fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        modifier = Modifier
+                    Column(
+                        Modifier
                             .fillMaxSize(0.8f),
-                        imageVector = Icons.Default.MailOutline,
-                        contentDescription = null
-                    )
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            modifier = Modifier
+                                .fillMaxSize(0.8f),
+                            imageVector = Icons.Default.MailOutline,
+                            contentDescription = null
+                        )
+                        if (isCanceledCompose)
+                            Text(
+                                text = stringResource(R.string.error_SMS_default)
+                            )
+                    }
                 }
 
                 val scope = rememberCoroutineScope()
                 val permissionFlow = flow {
 
                     while (true) {
+                        val l = Telephony.Sms.getDefaultSmsPackage(applicationContext)
+                        Log.i(TAG, "onCreate: sms default is $l")
 
                         if (permissions.all { permission ->
                                 (ContextCompat.checkSelfPermission(
                                     this@StartActivity, permission
                                 ) == PackageManager.PERMISSION_GRANTED)
-                            }) break
+                            } && l.equals(packageName)) break
 
+                        if (!l.equals(packageName) && !isSMSDefaultDialog) {
+                            isCanceledCompose = isCanceled
+                            isSMSDefaultDialog = true
 
+                            val roleManager = getSystemService(RoleManager::class.java)
+
+                            isRoleAvailable = roleManager.isRoleAvailable(RoleManager.ROLE_SMS)
+
+                            val roleRequestIntent = roleManager
+                                .createRequestRoleIntent(RoleManager.ROLE_SMS)
+                            startActivityForResult(roleRequestIntent, 12)
+                        }
 
                         permissions.forEach { permission ->
                             if (ContextCompat.checkSelfPermission(
@@ -115,16 +143,10 @@ class StartActivity : ComponentActivity() {
                                 launcher.launch(permission)
                             }
                         }
+
                         delay(200.milliseconds)
                     }
 
-                    val l = Telephony.Sms.getDefaultSmsPackage(applicationContext)
-                    if (!l.equals(packageName)) {
-                        val roleManager = getSystemService(RoleManager::class.java)
-                        val roleRequestIntent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
-                        startActivityForResult(roleRequestIntent, 12)
-                        Log.i(TAG, "onCreate: starting activity ")
-                    }
 
                     delay(3.seconds)
                     emit(Unit)
@@ -154,6 +176,8 @@ class StartActivity : ComponentActivity() {
                         }
                     )
                 }
+
+
             }
         }
     }
@@ -162,11 +186,9 @@ class StartActivity : ComponentActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         Log.i(TAG, "onActivityResult: $resultCode")
         if (requestCode == 12) {
-            if (resultCode == Activity.RESULT_OK) {
-                
-            } else {
-                // Пользователь отказал в назначении роли
-            }
+            if (resultCode == RESULT_CANCELED)
+                isCanceled = true
+            isSMSDefaultDialog = false
         }
     }
 }

@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SMS Messenger</string>
     <string name="cancel">Cancel</string>
-    <string name="ok">Ok</string>
+    <string name="ok">OK</string>
     <string name="select_all">Select All</string>
     <string name="delete_selected">Delete selected</string>
-    <string name="add">Add</string>
+    <string name="label_add">Add message</string>
     <string name="user">User</string>
     <string name="message">Message</string>
     <string name="error_empty_username">Empty username</string>
@@ -14,13 +13,27 @@
     <string name="error_color">Color error</string>
     <string name="title_color">Color (HEX Format)</string>
     <string name="error_user_is_not_selected">User is not selected</string>
-    <string name="error_no_users">No users...</string>
-    <string name="message_line">Message...</string>
-    <string name="error_user_is_not_found">user is not founded</string>
+    <string name="error_no_contacts">No contacts</string>
+    <string name="label_message_line">Message</string>
+    <string name="error_user_is_not_found">No messages from user</string>
     <string name="title_activity_start">Messenger</string>
     <string name="permissions">Permissions</string>
     <string name="permission_dialog_text">The application requires permissions to work</string>
     <string name="new_message">New message</string>
     <string name="send">Send</string>
     <string name="error_number">Wrong number</string>
+    <string name="error_SMS_default">For correct operation, you need to install the default application for SMS in the component</string>
+    <string name="type_inbox">Inbox</string>
+    <string name="type_sent">Sent</string>
+    <string name="type_draft">Draft</string>
+    <string name="type_outbox">Outbox</string>
+    <string name="type_failed">Failed</string>
+    <string name="type_queued">Queued</string>
+    <string name="label_message_type">Message type</string>
+    <string name="label_phone_number">Phone number</string>
+    <string name="label_for">For</string>
+    <string name="label_from_contacts">From contacts</string>
+    <string name="label_new">New</string>
+    <string name="thread_successfully_sent">Your sms has successfully sent!  to: %1$s, message: %2$s</string>
+    <string name="label_select_user">Select a user from your contacts</string>
 </resources>
