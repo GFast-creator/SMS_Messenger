@@ -1,10 +1,14 @@
 package ru.gfastg98.sms_messenger
 
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.Telephony
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.gfastg98.sms_messenger.activites.StartActivity
 import ru.gfastg98.sms_messenger.room.Message
 import ru.gfastg98.sms_messenger.room.User
 import javax.inject.Inject
@@ -24,7 +29,6 @@ enum class Commands {
 
     //INSERT_USER, DELETE_USER, DELETE_USERS,
     //INSERT_MESSAGE, DELETE_MESSAGE, DELETE_MESSAGES,
-
     SWITCH_DIALOG_ON, SWITCH_DIALOG_OFF,
 
     DELETE_LIST_USERS_UPDATE, DELETE_LIST_USERS_PLUS, DELETE_LIST_USERS_MINUS,
@@ -34,7 +38,9 @@ enum class Commands {
 
     INSERT_SMS,
 
-    DELETE_THREADS, DELETE_MESSAGES
+    DELETE_THREADS, DELETE_MESSAGES,
+
+    SEND_NOTIFICATION
 }
 
 data class SMSTable(
@@ -50,8 +56,8 @@ class MessengerViewModel @Inject constructor(@ApplicationContext context: Contex
         var instance: MessengerViewModel? = null
     }
 
-    @Inject
-    lateinit var vibrator: Vibrator
+    @Inject lateinit var vibrator: Vibrator
+    @Inject lateinit var notificationManager: NotificationManager
 
     private val _isDialog = MutableStateFlow(false)
     val isDialogStateFlow: StateFlow<Boolean>
@@ -178,6 +184,29 @@ class MessengerViewModel @Inject constructor(@ApplicationContext context: Contex
                 )
 
                 _deleteMessagesListStateFlow.value = emptyList()
+            }
+
+            Commands.SEND_NOTIFICATION -> {
+                val context = data[0] as Context
+                val address = data[1] as String
+                val message = data[2] as String
+
+                notificationManager.notify(
+                    HiltModule.NOTIFICATION_ID,
+                    NotificationCompat.Builder(context, HiltModule.CHANNEL_ID)
+                        .setSmallIcon(R.drawable.baseline_message_24)
+                        .setContentTitle(address)
+                        .setContentText(message)
+                        .setContentIntent(
+                            PendingIntent.getActivity(
+                                context,
+                                11,
+                                Intent(context, StartActivity::class.java),
+                                PendingIntent.FLAG_IMMUTABLE
+                            )
+                        )
+                        .build()
+                    )
             }
         }
         return null

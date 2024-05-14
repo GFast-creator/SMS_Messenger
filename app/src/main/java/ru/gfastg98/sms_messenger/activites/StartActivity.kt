@@ -176,8 +176,6 @@ class StartActivity : ComponentActivity() {
                         }
                     )
                 }
-
-
             }
         }
     }

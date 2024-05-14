@@ -10,7 +10,7 @@ import java.util.Date
 
 @ProvidedTypeConverter
 class Converters {
-    val TAG = "conv"
+    private val TAG = "conv"
     /// Color - String
     @TypeConverter
     fun colorFromString(value: String?): Color {

@@ -1,6 +1,8 @@
 package ru.gfastg98.sms_messenger
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -16,6 +18,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object HiltModule {
+    const val NOTIFICATION_ID = 1990
+    const val CHANNEL_ID = "1991"
+    const val CHANNEL_NAME = "list_app"
+
     @Singleton
     @Provides
     fun create(@ApplicationContext context : Context) : MessageDao {
@@ -28,5 +34,21 @@ object HiltModule {
         return (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager)
             .defaultVibrator
 
+    }
+
+    @Singleton
+    @Provides
+    fun notificationManager(app: Application): NotificationManager {
+        return (app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).apply {
+            createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_ID,
+                    CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = "channel for app"
+                }
+            )
+        }
     }
 }
