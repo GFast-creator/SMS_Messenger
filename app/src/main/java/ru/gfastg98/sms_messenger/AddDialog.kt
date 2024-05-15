@@ -53,6 +53,14 @@ fun AddDialog(
     viewModel: MessengerViewModel = viewModel(),
     contacts: List<User>
 ) {
+    val options = listOf(
+        MESSAGE_TYPE_INBOX,
+        MESSAGE_TYPE_SENT,
+        MESSAGE_TYPE_DRAFT,
+        MESSAGE_TYPE_OUTBOX,
+        MESSAGE_TYPE_FAILED,
+        MESSAGE_TYPE_QUEUED
+    )
     val context = LocalContext.current
 
     var expanded1 by remember { mutableStateOf(false) }
@@ -73,14 +81,6 @@ fun AddDialog(
         text = {
             Column {
                 Column {
-                    val options = listOf(
-                        MESSAGE_TYPE_INBOX,
-                        MESSAGE_TYPE_SENT,
-                        MESSAGE_TYPE_DRAFT,
-                        MESSAGE_TYPE_OUTBOX,
-                        MESSAGE_TYPE_FAILED,
-                        MESSAGE_TYPE_QUEUED
-                    )
 
                     ExposedDropdownMenuBox(
                         expanded = expanded1,
@@ -268,7 +268,9 @@ fun AddDialog(
         },
         confirmButton = {
             Button(onClick = {
-                if( to == null || (to?.num?.isEmpty() ?: to?.name?.isEmpty()) == true || newMessage.isEmpty()) {
+                if (to == null || (to?.num?.isEmpty()
+                        ?: to?.name?.isEmpty()) == true || newMessage.isEmpty()
+                ) {
                     hasTriedToDismiss = true
                     return@Button
                 }
@@ -277,7 +279,7 @@ fun AddDialog(
                     INSERT_SMS,
                     context,
                     type,
-                    to?.num?:to?.name?:"0",
+                    to?.num ?: to?.name ?: "0",
                     newMessage.trim()
                 )
                 viewModel.doCommand<Nothing>(SWITCH_DIALOG_OFF)

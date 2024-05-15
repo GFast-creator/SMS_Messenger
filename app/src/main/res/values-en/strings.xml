@@ -36,4 +36,17 @@
     <string name="label_new">New</string>
     <string name="thread_successfully_sent">Your sms has successfully sent!  to: %1$s, message: %2$s</string>
     <string name="label_select_user">Select a user from your contacts</string>
+    <string name="label_delete_dialog">" Permanently delete items?"</string>
+    <string name="export_l">Export</string>
+    <string name="choose_file">Choose file</string>
+    <string name="choose">Choose</string>
+    <string name="choose_folder">Select a folder to save</string>
+    <string name="save_here">Save here:</string>
+    <string name="load">Load</string>
+    <string name="save">Save</string>
+    <string name="archive">Archive</string>
+    <string name="label_no_messages">No messages. Write a new message to see it here</string>
+    <string name="saving_successful">Saving completed</string>
+    <string name="loading_complete">Loading complete</string>
+    <string name="import_l">Import</string>
 </resources>

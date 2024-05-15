@@ -20,7 +20,7 @@ import javax.inject.Singleton
 object HiltModule {
     const val NOTIFICATION_ID = 1990
     const val CHANNEL_ID = "1991"
-    const val CHANNEL_NAME = "list_app"
+    const val CHANNEL_NAME = "sms_messenger_app"
 
     @Singleton
     @Provides

@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
+import ru.gfastg98.sms_messenger.room.Message
 import java.util.Date
 
 val Date.isToday: Boolean
@@ -107,4 +108,35 @@ fun ContentResolver.register(uri: Uri) = callbackFlow {
     awaitClose  {
         unregisterContentObserver(observer)
     }
+}
+
+/*var text: String,
+    var datetime: Date,
+    var check: Boolean = false,
+    @ColumnInfo(index = true)
+    val threadId: Long,
+    val type: Int = Telephony.Sms.MESSAGE_TYPE_ALL*/
+
+val Message.toCSV : String
+    get() {
+        return arrayOf(
+            text,
+            datetime.time.toString(),
+            type.toString()
+        ).toCSV
+    }
+
+val Array<String>.toCSV : String
+    get() {
+        return joinToString(separator = ";") { s -> escapeSpecialCharacters(s) }
+    }
+
+fun escapeSpecialCharacters(innerData: String): String {
+    var data = innerData
+    var escapedData = data.replace("\\R".toRegex(), " ")
+    if (data.contains(",") || data.contains("\"") || data.contains("'")) {
+        data = data.replace("\"", "\"\"")
+        escapedData = "\"" + data + "\""
+    }
+    return escapedData
 }

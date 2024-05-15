@@ -19,10 +19,10 @@ import java.util.Date
         )
     ])
 class Message(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
     var text: String,
     var datetime: Date,
-    var check: Boolean = false,
     @ColumnInfo(index = true)
     val threadId: Long,
     val type: Int = Telephony.Sms.MESSAGE_TYPE_ALL

@@ -1,6 +1,7 @@
 package ru.gfastg98.sms_messenger.screens
 
 import android.provider.Telephony
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -35,9 +36,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import ru.gfastg98.sms_messenger.Commands
 import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.R
+import ru.gfastg98.sms_messenger.activites.MainActivity
 import ru.gfastg98.sms_messenger.messageTypeIcon
 import ru.gfastg98.sms_messenger.room.Message
 import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
@@ -51,8 +54,16 @@ fun MessagesScreen(
     viewModel: MessengerViewModel,
     messages: List<Message>,
     userAddress: String?,
-    modifier: Modifier
+    modifier: Modifier,
+    navController: NavController
 ) {
+
+    BackHandler {
+        if (MainActivity.onBackPressedCallback.isEnabled){
+            MainActivity.onBackPressedCallback.handleOnBackPressed()
+        } else navController.popBackStack()
+    }
+
     val deleteListMessages by viewModel.deleteMessagesListStateFlow.collectAsState()
 
     Column(
@@ -78,6 +89,7 @@ fun MessagesScreen(
                                     Commands.DELETE_LIST_MESSAGES_MINUS,
                                     message
                                 )
+                                if (deleteListMessages.isEmpty()) MainActivity.onBackPressedCallback.isEnabled = false
                             } else {
                                 viewModel.doCommand<Nothing>(
                                     Commands.DELETE_LIST_MESSAGES_PLUS,
@@ -92,6 +104,7 @@ fun MessagesScreen(
                                 Commands.DELETE_LIST_MESSAGES_PLUS,
                                 message
                             )
+                            MainActivity.onBackPressedCallback.isEnabled = true
                         }
                     },
                     isSelected = message in deleteListMessages
@@ -229,7 +242,6 @@ private fun MessageCardPreview() {
             text = "TEST",
             threadId = 0,
             datetime = Date(),
-            check = false,
             type = Telephony.Sms.MESSAGE_TYPE_SENT
         ),
         isSelected = true,

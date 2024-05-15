@@ -1,5 +1,11 @@
 package ru.gfastg98.sms_messenger.screens
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.animateValue
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -14,23 +20,30 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_USERS_MINUS
 import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_USERS_PLUS
 import ru.gfastg98.sms_messenger.MessengerViewModel
+import ru.gfastg98.sms_messenger.R
+import ru.gfastg98.sms_messenger.activites.MainActivity
 import ru.gfastg98.sms_messenger.activites.ROUTS
 import ru.gfastg98.sms_messenger.isToday
 import ru.gfastg98.sms_messenger.room.Message
@@ -51,62 +64,80 @@ fun UsersScreen(
     messages: List<Message> = emptyList(),
     deleteList: List<User>
 ) {
-    //val textMeasurer = rememberTextMeasurer()
-    LazyColumn(
-        modifier
-            .padding(horizontal = 8.dp)
-            .fillMaxSize()
-            .drawBehind {
-                /*if (users.isEmpty()) {
-                    drawText(
-                        textMeasurer,
-                        text = "Нет сообщений. Добавить новое",
-                        style = TextStyle(
-                            fontSize = 20.sp,
-                            color = Color.Black
-                        )
-                    )
-                } TODO: хотел добавить стрелку, указывающую на кнопку добавления*/
-            },
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(users) { user ->
-            UserCard(
-                modifier = Modifier.combinedClickable(
-                    onClick = {
-                        if (deleteList.isNotEmpty()) {
-                            if (user !in deleteList) {
+    if (users.isEmpty()) {
+        val infiniteTransition = rememberInfiniteTransition(label = "arrow_anim")
+        val value by infiniteTransition.animateValue(
+            initialValue = 56.dp,
+            targetValue = 56.dp * 2,
+            typeConverter = Dp.VectorConverter,
+            animationSpec = infiniteRepeatable(
+                tween(1000),
+                RepeatMode.Reverse
+            ),
+            label = "arrow_anim"
+        )
+
+        Box(
+            modifier
+                .padding(horizontal = 8.dp)
+                .fillMaxSize()
+        ) {
+            Text(text = stringResource(R.string.label_no_messages))
+            Icon(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 22.dp, bottom = value + 16.dp),
+                imageVector = Icons.Default.ArrowDownward,
+                contentDescription = null
+            )
+        }
+    } else
+        LazyColumn(
+            modifier
+                .padding(horizontal = 8.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(users) { user ->
+                UserCard(
+                    modifier = Modifier.combinedClickable(
+                        onClick = {
+                            if (deleteList.isNotEmpty()) {
+                                if (user !in deleteList) {
+                                    viewModel.doCommand<Nothing>(
+                                        DELETE_LIST_USERS_PLUS,
+                                        user
+                                    )
+                                } else {
+                                    viewModel.doCommand<Nothing>(
+                                        DELETE_LIST_USERS_MINUS,
+                                        user
+                                    )
+                                    if (deleteList.isEmpty())
+                                        MainActivity.onBackPressedCallback.isEnabled = true
+                                }
+                                viewModel.vibrate()
+                            } else {
+                                navController.navigate("${ROUTS.MESSAGES.r}/${user.id}")
+                            }
+                        },
+                        onLongClick = {
+                            if (deleteList.isEmpty()) {
                                 viewModel.doCommand<Nothing>(
                                     DELETE_LIST_USERS_PLUS,
                                     user
                                 )
-                            } else {
-                                viewModel.doCommand<Nothing>(
-                                    DELETE_LIST_USERS_MINUS,
-                                    user
-                                )
+                                MainActivity.onBackPressedCallback.isEnabled = true
+                                viewModel.vibrate()
                             }
-                            viewModel.vibrate()
-                        } else {
-                            navController.navigate("${ROUTS.MESSAGES.r}/${user.id}")
                         }
-                    },
-                    onLongClick = {
-                        if (deleteList.isEmpty()) {
-                            viewModel.doCommand<Nothing>(
-                                DELETE_LIST_USERS_PLUS,
-                                user
-                            )
-                            viewModel.vibrate()
-                        }
-                    }
-                ),
-                user = user,
-                lastMessage = messages.find { m -> m.threadId == user.id },
-                selected = user in deleteList
-            )
+                    ),
+                    user = user,
+                    lastMessage = messages.find { m -> m.threadId == user.id },
+                    selected = user in deleteList
+                )
+            }
         }
-    }
 }
 
 @Preview(showBackground = true)
@@ -150,12 +181,12 @@ fun UserCard(
                 ) {
                     Text(
                         text = user.name.run {
-                        if (isEmpty()) ""
-                        else uppercase()
-                            .split(" ")
-                            .joinToString(separator = "") { s ->
-                                s[0].toString()
-                            }
+                            if (isEmpty()) ""
+                            else uppercase()
+                                .split(" ")
+                                .joinToString(separator = "") { s ->
+                                    s[0].toString()
+                                }
                         },
                         color = getInvertedColor(color = user.color)
                     )

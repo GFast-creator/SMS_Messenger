@@ -36,4 +36,17 @@
     <string name="label_new">Новый</string>
     <string name="label_select_user">Выберите пользователя из контактов</string>
     <string name="thread_successfully_sent">Your sms has successfully sent!  to: %1$s, message: %2$sСообщение успешно отправлено!  Для: %1$s, сообщение: %2$s</string>
+    <string name="label_delete_dialog">Безвозвратно удалить элементы?</string>
+    <string name="import_l">Импорт</string>
+    <string name="export_l">Экспорт</string>
+    <string name="choose_file">Выбор файла</string>
+    <string name="choose">Выбрать</string>
+    <string name="choose_folder">Выберите папку для сохранения</string>
+    <string name="save_here">Сохранить здесь:</string>
+    <string name="load">Загрузить</string>
+    <string name="save">Сохранить</string>
+    <string name="archive">Архивирование</string>
+    <string name="label_no_messages">Нет сообщений. Напишите новое сообщение, чтобы увидеть его здесь</string>
+    <string name="saving_successful">Сохранение выполнено</string>
+    <string name="loading_complete">Загрузка выполнена</string>
 </resources>

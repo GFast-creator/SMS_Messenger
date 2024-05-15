@@ -2,8 +2,10 @@ package ru.gfastg98.sms_messenger.activites
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Environment
 import android.provider.Telephony
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -21,6 +23,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.SettingsBackupRestore
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -38,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavType
@@ -47,11 +53,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dagger.hilt.android.AndroidEntryPoint
 import ru.gfastg98.sms_messenger.AddDialog
+import ru.gfastg98.sms_messenger.BackupDialog
 import ru.gfastg98.sms_messenger.Commands
 import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_MESSAGES_UPDATE
 import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_USERS_UPDATE
-import ru.gfastg98.sms_messenger.Commands.DELETE_MESSAGES
-import ru.gfastg98.sms_messenger.Commands.DELETE_THREADS
 import ru.gfastg98.sms_messenger.Commands.SWITCH_DIALOG_ON
 import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.R
@@ -72,18 +77,22 @@ enum class ROUTS(val r: String) {
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    companion object{
+        lateinit var onBackPressedCallback : OnBackPressedCallback
+    }
 
     private val viewModel: MessengerViewModel by viewModels()
     private var currentUserId: Long? = null
-    private var contacts : List<User> = emptyList()
+    private var contacts: List<User> = emptyList()
+
 
     override fun onResume() {
         super.onResume()
         contacts = viewModel.doCommand<List<User>>(Commands.GET_CONTACTS, applicationContext)!!
 
         //проверка на приложение по умолчанию
-        if (!Telephony.Sms.getDefaultSmsPackage(applicationContext).equals(packageName)){
-            startActivity(Intent(this,StartActivity::class.java))
+        if (!Telephony.Sms.getDefaultSmsPackage(applicationContext).equals(packageName)) {
+            startActivity(Intent(this, StartActivity::class.java))
             finish()
         }
     }
@@ -92,19 +101,41 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        onBackPressedCallback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                viewModel.doCommand<Nothing>(
+                    DELETE_LIST_USERS_UPDATE,
+                    emptyList<User>()
+                )
+                viewModel.doCommand<Nothing>(
+                    DELETE_LIST_MESSAGES_UPDATE,
+                    emptyList<User>()
+                )
+                isEnabled = false
+            }
+        }
+
         setContent {
             SMSMessengerTheme {
                 //тест
                 //viewModel.doCommand<Nothing>(INSERT_SMS, arrayOf(applicationContext, "123123", "test message"))
 
+                onBackPressedDispatcher.addCallback(
+                    LocalLifecycleOwner.current,
+                    onBackPressedCallback
+                )
+                val defColor = MaterialTheme.colorScheme.surface
+
                 val navController = rememberNavController()
 
                 val appName = stringResource(id = R.string.app_name)
                 var title by remember { mutableStateOf("") }
-                var topAppBarColor by remember { mutableStateOf(Color.Unspecified) }
+                var topAppBarColor by remember { mutableStateOf(defColor) }
                 var addButtonVisibility by remember { mutableStateOf(true) }
 
                 val isDialog by viewModel.isDialogStateFlow.collectAsState()
+                var isDeleteDialog by remember { mutableStateOf(false) }
+                var isBackupDialog by remember { mutableStateOf(false) }
 
                 val deleteListUsers by viewModel.deleteUsersListStateFlow.collectAsState()
                 val deleteListMessages by viewModel.deleteMessagesListStateFlow.collectAsState()
@@ -119,25 +150,60 @@ class MainActivity : ComponentActivity() {
                         topAppBarColor = Color.Unspecified
                         addButtonVisibility = true
                         currentUserId = null
+                        viewModel.doCommand<Nothing>(
+                            DELETE_LIST_MESSAGES_UPDATE,
+                            emptyList<User>()
+                        )
                     } else {
                         currentUserId = bundle?.getLong("userId")
                         val user = messagesList.users.firstOrNull { u -> u.id == currentUserId }
                         title = user?.name ?: appName
-                        topAppBarColor = user?.color ?: Color.Unspecified
+                        topAppBarColor = user?.color ?: defColor
                         addButtonVisibility = false
+                        viewModel.doCommand<Nothing>(
+                            DELETE_LIST_USERS_UPDATE,
+                            emptyList<User>()
+                        )
                     }
-                    viewModel.doCommand<Nothing>(
-                        DELETE_LIST_USERS_UPDATE,
-                        emptyList<User>()
-                    )
-                    viewModel.doCommand<Nothing>(
-                        DELETE_LIST_MESSAGES_UPDATE,
-                        emptyList<User>()
-                    )
                 }
 
                 if (isDialog) {
                     AddDialog(viewModel, contacts)
+                }
+
+                // диалог для удаления
+                if (isDeleteDialog) {
+                    AlertDialog(
+                        title = { Text(text = stringResource(R.string.label_delete_dialog)) },
+                        //text = { Text(text = "") },
+                        onDismissRequest = { isDeleteDialog = false },
+                        confirmButton = {
+                            Button(onClick = {
+                                viewModel.doCommand<Nothing>(
+                                    if (deleteListUsers.isNotEmpty()) Commands.DELETE_THREADS
+                                    else Commands.DELETE_MESSAGES,
+                                    applicationContext
+                                )
+                                onBackPressedCallback.isEnabled = false
+                                isDeleteDialog = false
+                            }) {
+                                Text(text = stringResource(id = R.string.ok))
+                            }
+                        },
+                        dismissButton = {
+                            Button(onClick = { isDeleteDialog = false }) {
+                                Text(text = stringResource(id = R.string.cancel))
+                            }
+                        }
+                    )
+                }
+
+                if (isBackupDialog) {
+                    BackupDialog(
+                        viewModel = viewModel,
+                        onDismissAction = { isBackupDialog = false },
+                        startDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    )
                 }
 
                 Scaffold(
@@ -152,10 +218,11 @@ class MainActivity : ComponentActivity() {
                                 if (deleteListUsers.isNotEmpty() || deleteListMessages.isNotEmpty()) {
                                     IconButton(onClick = {
                                         viewModel.doCommand<Nothing>(
-                                            if (deleteListUsers.isNotEmpty())DELETE_LIST_USERS_UPDATE
+                                            if (deleteListUsers.isNotEmpty()) DELETE_LIST_USERS_UPDATE
                                             else DELETE_LIST_MESSAGES_UPDATE,
                                             emptyList<User>()
                                         )
+                                        onBackPressedCallback.isEnabled = false
                                     }) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
@@ -165,15 +232,14 @@ class MainActivity : ComponentActivity() {
 
                                     IconButton(onClick = {
                                         viewModel.doCommand<Nothing>(
-                                            if (deleteListUsers.isNotEmpty())DELETE_LIST_USERS_UPDATE
+                                            if (deleteListUsers.isNotEmpty()) DELETE_LIST_USERS_UPDATE
                                             else DELETE_LIST_MESSAGES_UPDATE,
-                                            if (deleteListUsers.isNotEmpty())messagesList.users
+                                            if (deleteListUsers.isNotEmpty()) messagesList.users
                                             else currentUserId?.let {
                                                 messagesList.messages.filter { m ->
                                                     m.threadId == it
                                                 }
                                             }
-
                                         )
                                     }) {
                                         Icon(
@@ -181,15 +247,21 @@ class MainActivity : ComponentActivity() {
                                             contentDescription = stringResource(id = R.string.select_all),
                                         )
                                     }
+
                                     IconButton(onClick = {
-                                        viewModel.doCommand<Nothing>(
-                                            if (deleteListUsers.isNotEmpty()) DELETE_THREADS
-                                            else DELETE_MESSAGES,
-                                            applicationContext
-                                        )
+                                        isDeleteDialog = true
                                     }) {
                                         Icon(
                                             imageVector = Icons.Default.Delete,
+                                            contentDescription = stringResource(R.string.delete_selected)
+                                        )
+                                    }
+                                } else if (currentUserId == null) {
+                                    IconButton(onClick = {
+                                        isBackupDialog = true
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.Default.SettingsBackupRestore,
                                             contentDescription = stringResource(R.string.delete_selected)
                                         )
                                     }
@@ -265,7 +337,8 @@ class MainActivity : ComponentActivity() {
                                 } ?: emptyList(),
                                 userAddress = currentUser?.num,
                                 modifier = modifier,
-                                viewModel = viewModel
+                                viewModel = viewModel,
+                                navController = navController
                             )
                         }
                     }

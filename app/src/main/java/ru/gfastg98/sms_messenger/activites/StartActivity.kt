@@ -143,10 +143,8 @@ class StartActivity : ComponentActivity() {
                                 launcher.launch(permission)
                             }
                         }
-
                         delay(200.milliseconds)
                     }
-
 
                     delay(3.seconds)
                     emit(Unit)

@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.Telephony
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 import ru.gfastg98.sms_messenger.activites.StartActivity
 import ru.gfastg98.sms_messenger.room.Message
 import ru.gfastg98.sms_messenger.room.User
+import java.io.File
 import javax.inject.Inject
 
 enum class Commands {
@@ -40,7 +42,8 @@ enum class Commands {
 
     DELETE_THREADS, DELETE_MESSAGES,
 
-    SEND_NOTIFICATION
+    SEND_NOTIFICATION,
+    IMPORT_SMS, EXPORT_SMS
 }
 
 data class SMSTable(
@@ -207,6 +210,13 @@ class MessengerViewModel @Inject constructor(@ApplicationContext context: Contex
                         )
                         .build()
                     )
+            }
+
+            Commands.IMPORT_SMS -> {
+                Repository.import(data[0] as Context, data[1] as Uri)
+            }
+            Commands.EXPORT_SMS -> {
+                Repository.export(data[0] as Context, data[1] as File, _smsTable.value)
             }
         }
         return null
