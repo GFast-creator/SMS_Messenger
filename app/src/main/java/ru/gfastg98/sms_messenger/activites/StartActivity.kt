@@ -122,7 +122,7 @@ class StartActivity : ComponentActivity() {
                                 ) == PackageManager.PERMISSION_GRANTED)
                             } && l.equals(packageName)) break
 
-                        if (!l.equals(packageName) && !isSMSDefaultDialog) {
+                        if (l != null && !l.equals(packageName) && !isSMSDefaultDialog) {
                             isCanceledCompose = isCanceled
                             isSMSDefaultDialog = true
 

@@ -17,6 +17,8 @@ import ru.gfastg98.sms_messenger.room.User
 import ru.gfastg98.sms_messenger.ui.theme.colorPool
 import java.io.BufferedReader
 import java.io.File
+import java.io.FileNotFoundException
+import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.PrintWriter
 import java.util.Date
@@ -118,7 +120,7 @@ object Repository {
         }
     }
 
-    fun sendSMS(context: Context, message: String, address: String, isDigits: Boolean) {
+    fun sendSMS(context: Context, address: String, isDigits: Boolean, message: String) {
         try {
             val smsManager: SmsManager = context.getSystemService(SmsManager::class.java)
             val pendingIntent = PendingIntent.getBroadcast(
@@ -302,7 +304,10 @@ object Repository {
         }
     }
 
-    fun export(context: Context,destination: File, table: SMSTable) {
+    const val RESULT_OK = 1
+    const val RESULT_ERROR = -1
+
+    fun export(context: Context, destination: File, table: SMSTable): Int {
         if (destination.isDirectory) {
             var i = 1
             val files = destination.listFiles()
@@ -312,7 +317,19 @@ object Repository {
                 }
             }
             val file = File("${destination.absoluteFile}/export$i.csv")
-            PrintWriter(file).use { pw ->
+
+            val printWriter: PrintWriter
+
+            try {
+                printWriter = PrintWriter(file)
+            } catch (e: FileNotFoundException) {
+                Toast.makeText(context,
+                    context.getString(R.string.error_wrong_file_directory), Toast.LENGTH_SHORT)
+                    .show()
+                return RESULT_ERROR
+            }
+
+            printWriter.use { pw ->
                 table.messages
                     .forEach {
                         pw.println(
@@ -320,15 +337,29 @@ object Repository {
                         )
                     }
             }
-            Toast.makeText(context, context.getString(R.string.saving_successful), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                context.getString(R.string.saving_successful),
+                Toast.LENGTH_SHORT
+            ).show()
+            return RESULT_OK
+        }
 
-        } else Log.e(TAG, "export: destination is not a directory. ${destination.absolutePath}")
-
+        Log.e(TAG, "export: destination is not a directory. ${destination.absolutePath}")
+        return RESULT_ERROR
     }
 
-    fun import(context: Context, destination: Uri) {
 
-        val in1 = context.contentResolver.openInputStream(destination)
+    fun import(context: Context, destination: Uri): Int {
+        val in1 : InputStream
+
+        try {
+            in1 = context.contentResolver.openInputStream(destination)!!
+        } catch (e : FileNotFoundException) {
+            Toast.makeText(context, context.getString(R.string.error_open_file), Toast.LENGTH_SHORT)
+                .show()
+            return RESULT_ERROR
+        }
 
         context.contentResolver.delete(
             Telephony.Sms.CONTENT_URI,
@@ -355,6 +386,7 @@ object Repository {
         }
 
         Toast.makeText(context, context.getString(R.string.loading_complete), Toast.LENGTH_SHORT).show()
+        return RESULT_OK
     }
 
 }

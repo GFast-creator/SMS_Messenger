@@ -39,8 +39,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_USERS_MINUS
-import ru.gfastg98.sms_messenger.Commands.DELETE_LIST_USERS_PLUS
+import ru.gfastg98.sms_messenger.Command.DELETE_LIST_USERS_MINUS
+import ru.gfastg98.sms_messenger.Command.DELETE_LIST_USERS_PLUS
 import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.R
 import ru.gfastg98.sms_messenger.activites.MainActivity
@@ -104,14 +104,16 @@ fun UsersScreen(
                         onClick = {
                             if (deleteList.isNotEmpty()) {
                                 if (user !in deleteList) {
-                                    viewModel.doCommand<Nothing>(
-                                        DELETE_LIST_USERS_PLUS,
-                                        user
+                                    viewModel.onEvent<Unit>(
+                                        DELETE_LIST_USERS_PLUS(
+                                            user
+                                        )
                                     )
                                 } else {
-                                    viewModel.doCommand<Nothing>(
-                                        DELETE_LIST_USERS_MINUS,
-                                        user
+                                    viewModel.onEvent<Unit>(
+                                        DELETE_LIST_USERS_MINUS(
+                                            user
+                                        )
                                     )
                                     if (deleteList.isEmpty())
                                         MainActivity.onBackPressedCallback.isEnabled = true
@@ -123,9 +125,10 @@ fun UsersScreen(
                         },
                         onLongClick = {
                             if (deleteList.isEmpty()) {
-                                viewModel.doCommand<Nothing>(
-                                    DELETE_LIST_USERS_PLUS,
-                                    user
+                                viewModel.onEvent<Unit>(
+                                    DELETE_LIST_USERS_PLUS(
+                                        user
+                                    )
                                 )
                                 MainActivity.onBackPressedCallback.isEnabled = true
                                 viewModel.vibrate()

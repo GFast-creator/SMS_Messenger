@@ -1,4 +1,4 @@
-package ru.gfastg98.sms_messenger
+package ru.gfastg98.sms_messenger.dialogs
 
 import android.provider.Telephony
 import android.provider.Telephony.TextBasedSmsColumns.MESSAGE_TYPE_DRAFT
@@ -41,11 +41,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import ru.gfastg98.sms_messenger.Commands.INSERT_SMS
-import ru.gfastg98.sms_messenger.Commands.SWITCH_DIALOG_OFF
+import ru.gfastg98.sms_messenger.Command.INSERT_SMS
+import ru.gfastg98.sms_messenger.Command.SWITCH_DIALOG_OFF
+import ru.gfastg98.sms_messenger.ErrorText
+import ru.gfastg98.sms_messenger.MessengerViewModel
+import ru.gfastg98.sms_messenger.R
+import ru.gfastg98.sms_messenger.isNumber
+import ru.gfastg98.sms_messenger.messageTypeIcon
+import ru.gfastg98.sms_messenger.messageTypeName
 import ru.gfastg98.sms_messenger.room.User
+
+val options = listOf(
+    MESSAGE_TYPE_INBOX,
+    MESSAGE_TYPE_SENT,
+    MESSAGE_TYPE_DRAFT,
+    MESSAGE_TYPE_OUTBOX,
+    MESSAGE_TYPE_FAILED,
+    MESSAGE_TYPE_QUEUED
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,35 +67,25 @@ fun AddDialog(
     viewModel: MessengerViewModel = viewModel(),
     contacts: List<User>
 ) {
-    val options = listOf(
-        MESSAGE_TYPE_INBOX,
-        MESSAGE_TYPE_SENT,
-        MESSAGE_TYPE_DRAFT,
-        MESSAGE_TYPE_OUTBOX,
-        MESSAGE_TYPE_FAILED,
-        MESSAGE_TYPE_QUEUED
-    )
+
     val context = LocalContext.current
 
     var expanded1 by remember { mutableStateOf(false) }
     var expanded2 by remember { mutableStateOf(false) }
-    var decision by remember { mutableStateOf(true) }
 
-    var hasTriedToDismiss by remember { mutableStateOf(false) }
+    var decision by remember { mutableStateOf(true) }
+    var hasTriedToConfirm by remember { mutableStateOf(false) }
 
     var type by remember { mutableIntStateOf(Telephony.Sms.MESSAGE_TYPE_SENT) }
     var to by remember { mutableStateOf(contacts.firstOrNull()) }
     var newMessage by rememberSaveable { mutableStateOf("") }
 
     AlertDialog(
-        onDismissRequest = {
-            viewModel.doCommand<Nothing>(SWITCH_DIALOG_OFF)
-        },
+        onDismissRequest = { viewModel.onEvent<Unit>(SWITCH_DIALOG_OFF) },
         title = { Text(text = stringResource(R.string.label_add)) },
         text = {
             Column {
                 Column {
-
                     ExposedDropdownMenuBox(
                         expanded = expanded1,
                         onExpandedChange = {
@@ -138,12 +142,12 @@ fun AddDialog(
                     Row {// RadioGroup (контакты/новый)
                         val action1 = {
                             decision = true
-                            hasTriedToDismiss = false
+                            hasTriedToConfirm = false
                             to = contacts.firstOrNull()
                         }
                         val action2 = {
                             decision = false
-                            hasTriedToDismiss = false
+                            hasTriedToConfirm = false
                             to = User(name = "")
                         }
                         Row(
@@ -231,7 +235,7 @@ fun AddDialog(
                         Column {
                             var text by rememberSaveable { mutableStateOf("") }
 
-                            if (hasTriedToDismiss && (text.isEmpty() || !text.isNumber))
+                            if (hasTriedToConfirm && (text.isEmpty() || !text.isNumber))
                                 ErrorText(text = stringResource(R.string.error_number))
                             TextField(
                                 label = { Text(text = stringResource(R.string.label_phone_number)) },
@@ -250,7 +254,7 @@ fun AddDialog(
 
                 Spacer(Modifier.size(8.dp))
 
-                if (hasTriedToDismiss && newMessage.isEmpty())
+                if (hasTriedToConfirm && newMessage.isEmpty())
                     ErrorText(text = stringResource(id = R.string.error_empty_message))
                 OutlinedTextField(
                     value = newMessage,
@@ -261,37 +265,33 @@ fun AddDialog(
         },
         dismissButton = {
             Button(onClick = {
-                viewModel.doCommand<Nothing>(SWITCH_DIALOG_OFF)
+                viewModel.onEvent<Unit>(SWITCH_DIALOG_OFF)
             }) {
                 Text(text = stringResource(id = R.string.cancel))
             }
         },
         confirmButton = {
             Button(onClick = {
-                if (to == null || (to?.num?.isEmpty()
-                        ?: to?.name?.isEmpty()) == true || newMessage.isEmpty()
+                if (to == null
+                    || (to?.num?.isEmpty() ?: to?.name?.isEmpty()) == true
+                    || newMessage.isEmpty()
                 ) {
-                    hasTriedToDismiss = true
+                    hasTriedToConfirm = true
                     return@Button
                 }
 
-                viewModel.doCommand<Nothing>(
-                    INSERT_SMS,
-                    context,
-                    type,
-                    to?.num ?: to?.name ?: "0",
-                    newMessage.trim()
+                viewModel.onEvent<Unit>(
+                    INSERT_SMS(
+                        context = context,
+                        type = type,
+                        address = to?.num ?: to?.name ?: "0",
+                        message = newMessage.trim()
+                    )
                 )
-                viewModel.doCommand<Nothing>(SWITCH_DIALOG_OFF)
+                viewModel.onEvent<Unit>(SWITCH_DIALOG_OFF)
             }) {
                 Text(text = stringResource(id = R.string.ok))
             }
         }
     )
 }
-
-@Composable
-fun ErrorText(text: String) {
-    Text(text = text, color = Color.Red, fontSize = 10.sp)
-}
-

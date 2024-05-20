@@ -49,4 +49,6 @@
     <string name="saving_successful">Saving completed</string>
     <string name="loading_complete">Loading complete</string>
     <string name="import_l">Import</string>
+    <string name="error_wrong_file_directory">Error: unable to create file here</string>
+    <string name="error_open_file">Error: Cannot open file for viewing</string>
 </resources>

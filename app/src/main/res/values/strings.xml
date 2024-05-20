@@ -49,4 +49,6 @@
     <string name="label_no_messages">Нет сообщений. Напишите новое сообщение, чтобы увидеть его здесь</string>
     <string name="saving_successful">Сохранение выполнено</string>
     <string name="loading_complete">Загрузка выполнена</string>
+    <string name="error_wrong_file_directory">Ошибка: невозможно создать файл здесь</string>
+    <string name="error_open_file">Ошибка: Невозможно открыть файл для просмотра</string>
 </resources>

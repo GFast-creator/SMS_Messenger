@@ -1,4 +1,4 @@
-package ru.gfastg98.sms_messenger
+package ru.gfastg98.sms_messenger.dialogs
 
 import android.net.Uri
 import android.os.Environment
@@ -12,14 +12,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -42,6 +45,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ru.gfastg98.sms_messenger.Command
+import ru.gfastg98.sms_messenger.MessengerViewModel
+import ru.gfastg98.sms_messenger.R
+import ru.gfastg98.sms_messenger.Repository
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.name
@@ -74,7 +81,13 @@ fun BackupDialog(
     var hasTriedToDismiss by remember { mutableStateOf(false) }
 
     AlertDialog(
-        title = { Text(text = stringResource(R.string.archive)) },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = Icons.Default.Archive, contentDescription = null)
+                Spacer(modifier = Modifier.size(4.dp))
+                Text(text = stringResource(R.string.archive))
+            }
+        },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -239,20 +252,23 @@ fun BackupDialog(
                 hasTriedToDismiss = true
                 if (decision) {
                     if (pickedFile != null) {
-                        viewModel.doCommand<Nothing>(
-                            Commands.IMPORT_SMS,
-                            context,
-                            pickedFile
-                        )
+                        if (viewModel.onEvent<Int>(
+                            Command.IMPORT_SMS(
+                                context,
+                                pickedFile!!
+                            )
+                        ) == Repository.RESULT_OK)
+                            onDismissAction()
                     }
                     onDismissAction()
                 } else {
-                    viewModel.doCommand<Nothing>(
-                        Commands.EXPORT_SMS,
-                        context,
-                        pickedDirectory
-                    )
-                    onDismissAction()
+                    if (viewModel.onEvent<Int>(
+                        Command.EXPORT_SMS(
+                            context,
+                            pickedDirectory
+                        )
+                    ) == Repository.RESULT_OK)
+                        onDismissAction()
                 }
             }) {
                 if (decision) {

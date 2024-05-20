@@ -37,15 +37,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import ru.gfastg98.sms_messenger.Commands
+import ru.gfastg98.sms_messenger.Command.DELETE_LIST_MESSAGES_MINUS
+import ru.gfastg98.sms_messenger.Command.DELETE_LIST_MESSAGES_PLUS
+import ru.gfastg98.sms_messenger.Command.INSERT_SMS
 import ru.gfastg98.sms_messenger.MessengerViewModel
 import ru.gfastg98.sms_messenger.R
 import ru.gfastg98.sms_messenger.activites.MainActivity
 import ru.gfastg98.sms_messenger.messageTypeIcon
 import ru.gfastg98.sms_messenger.room.Message
 import ru.gfastg98.sms_messenger.ui.theme.ItemColorRed
-import ru.gfastg98.sms_messenger.ui.theme.SpeechBubbleShape
 import ru.gfastg98.sms_messenger.ui.theme.checkColor
+import ru.gfastg98.sms_messenger.ui.theme.shapes.SpeechBubbleShape
 import java.util.Date
 
 
@@ -85,24 +87,20 @@ fun MessagesScreen(
                     onItemClick = {
                         if (deleteListMessages.isNotEmpty()){
                             if (message in deleteListMessages){
-                                viewModel.doCommand<Nothing>(
-                                    Commands.DELETE_LIST_MESSAGES_MINUS,
-                                    message
+                                viewModel.onEvent<Unit>(
+                                    DELETE_LIST_MESSAGES_MINUS(message)
                                 )
-                                if (deleteListMessages.isEmpty()) MainActivity.onBackPressedCallback.isEnabled = false
                             } else {
-                                viewModel.doCommand<Nothing>(
-                                    Commands.DELETE_LIST_MESSAGES_PLUS,
-                                    message
+                                viewModel.onEvent<Unit>(
+                                    DELETE_LIST_MESSAGES_PLUS(message)
                                 )
                             }
-                        }
+                        } else MainActivity.onBackPressedCallback.isEnabled = false
                     },
                     onItemLongClick = {
                         if (deleteListMessages.isEmpty()){
-                            viewModel.doCommand<Nothing>(
-                                Commands.DELETE_LIST_MESSAGES_PLUS,
-                                message
+                            viewModel.onEvent<Unit>(
+                                DELETE_LIST_MESSAGES_PLUS(message)
                             )
                             MainActivity.onBackPressedCallback.isEnabled = true
                         }
@@ -115,13 +113,13 @@ fun MessagesScreen(
             var message by remember { mutableStateOf("") }
             val context = LocalContext.current
             val onSendMessage: (message: String) -> Unit = {
-                viewModel.doCommand<Nothing>(
-                    Commands.INSERT_SMS,
-                    context,
-                    Telephony.Sms.MESSAGE_TYPE_SENT,
-                    userAddress,
-                    message.trim()
-
+                viewModel.onEvent<Unit>(
+                    INSERT_SMS(
+                        context = context,
+                        type = Telephony.Sms.MESSAGE_TYPE_SENT,
+                        address = userAddress,
+                        message = message.trim()
+                    )
                 )
             }
 

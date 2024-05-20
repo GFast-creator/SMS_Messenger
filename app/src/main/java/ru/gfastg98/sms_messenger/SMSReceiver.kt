@@ -8,6 +8,8 @@ import android.provider.Telephony.Sms.Intents.SMS_DELIVER_ACTION
 import android.provider.Telephony.Sms.Intents.SMS_RECEIVED_ACTION
 import android.telephony.SmsMessage
 import android.util.Log
+import ru.gfastg98.sms_messenger.Command.INSERT_SMS
+import ru.gfastg98.sms_messenger.Command.SEND_NOTIFICATION
 
 class SMSBroadcastReceiver : BroadcastReceiver() {
     companion object {
@@ -17,13 +19,16 @@ class SMSBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent) {
         Log.i(TAG, "onReceive: broadcast received: ${intent.action}")
+        context?:let {
+            Log.e(TAG, "onReceive: context is null")
+            return
+        }
 
-
-        //Toast.makeText(context, "test", Toast.LENGTH_SHORT).show()
         when (intent.action) {
             SMS_DELIVER_ACTION, NEW_MESSAGE_ACTION -> {
                 val bundle = intent.extras
                 if (bundle != null) {
+
                     // get sms objects
                     val pduArray = (bundle["pdus"] as Array<*>?)!!
                     if (pduArray.isEmpty()) {
@@ -42,27 +47,27 @@ class SMSBroadcastReceiver : BroadcastReceiver() {
                         sb.append(smsMessage.messageBody)
                     }
 
-                    val sender = messages[0].originatingAddress
+                    val sender = messages[0].originatingAddress?: context.getString(R.string.message)
                     val message = sb.toString()
 
-                    Log.i(TAG, "onReceive: mainActivity is: ${MessengerViewModel.instance}")
-                    //MainActivity.instance?.updateSms()
-                    MessengerViewModel.instance?.run {
-                        doCommand<Nothing>(
-                            Commands.INSERT_SMS,
+                    Log.d(TAG, "onReceive: viewmodel is: ${MessengerViewModel.instance}")
 
-                            context,
-                            Telephony.Sms.MESSAGE_TYPE_INBOX,
-                            sender,
-                            message
+                    MessengerViewModel.instance?.run {
+                        onEvent<Unit>(
+                            INSERT_SMS(
+                                context,
+                                Telephony.Sms.MESSAGE_TYPE_INBOX,
+                                sender,
+                                message
+                            )
                         )
 
-                        doCommand<Nothing>(
-                            Commands.SEND_NOTIFICATION,
-
+                        onEvent<Unit>(
+                            SEND_NOTIFICATION(
                             context,
                             sender,
                             message
+                            )
                         )
                     }
                 }
@@ -72,7 +77,8 @@ class SMSBroadcastReceiver : BroadcastReceiver() {
     }
 }
 
-class SMSBroadcastReceiver1 : BroadcastReceiver() {//TODO: это заглушка для MMS
+class MMSBroadcastReceiver : BroadcastReceiver() {
+
     companion object {
         private const val TAG = "SMSBroadcastReceiver"
         const val NEW_MESSAGE_ACTION = "NEW_MESSAGE"
@@ -85,32 +91,10 @@ class SMSBroadcastReceiver1 : BroadcastReceiver() {//TODO: это заглушк
         //Toast.makeText(context, "test", Toast.LENGTH_SHORT).show()
         when (intent.action) {
             SMS_RECEIVED_ACTION, NEW_MESSAGE_ACTION -> {
-                /*val bundle = intent.extras
-                if (bundle != null) {
-                    // get sms objects
-                    val pduArray = (bundle["pdus"] as Array<*>?)!!
-                    if (pduArray.isEmpty()) {
-                        return
-                    }
-                    // large message might be broken into many
-                    val messages = mutableListOf<SmsMessage>()
 
-                    val sb = StringBuilder()
-                    for (i in pduArray.indices) {
-                        val smsMessage = SmsMessage.createFromPdu(pduArray[i] as ByteArray, bundle.getString("format"))
-                        messages += smsMessage
-                        sb.append(smsMessage.messageBody)
-                    }
-
-                    val sender = messages[0].originatingAddress
-                    val message = sb.toString()
-
-
-
-                }*/
                 Log.i(TAG, "onReceive: mainActivity is: ${MessengerViewModel.instance}")
                 //MainActivity.instance?.updateSms()
-                MessengerViewModel.instance?.doCommand<Nothing>(Commands.UPDATE_SMS, context)
+                //MessengerViewModel.instance?.onEvent<Unit>(UPDATE_SMS(context))
                 abortBroadcast()
             }
         }

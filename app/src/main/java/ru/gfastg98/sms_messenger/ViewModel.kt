@@ -18,32 +18,77 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.gfastg98.sms_messenger.Command.ADD_USER
+import ru.gfastg98.sms_messenger.Command.DELETE_LIST_MESSAGES_MINUS
+import ru.gfastg98.sms_messenger.Command.DELETE_LIST_MESSAGES_PLUS
+import ru.gfastg98.sms_messenger.Command.DELETE_LIST_MESSAGES_UPDATE
+import ru.gfastg98.sms_messenger.Command.DELETE_LIST_USERS_MINUS
+import ru.gfastg98.sms_messenger.Command.DELETE_LIST_USERS_PLUS
+import ru.gfastg98.sms_messenger.Command.DELETE_LIST_USERS_UPDATE
+import ru.gfastg98.sms_messenger.Command.DELETE_MESSAGES
+import ru.gfastg98.sms_messenger.Command.DELETE_THREADS
+import ru.gfastg98.sms_messenger.Command.EXPORT_SMS
+import ru.gfastg98.sms_messenger.Command.GET_CONTACTS
+import ru.gfastg98.sms_messenger.Command.IMPORT_SMS
+import ru.gfastg98.sms_messenger.Command.INSERT_SMS
+import ru.gfastg98.sms_messenger.Command.SEND_NOTIFICATION
+import ru.gfastg98.sms_messenger.Command.SEND_SMS
+import ru.gfastg98.sms_messenger.Command.SWITCH_DIALOG_OFF
+import ru.gfastg98.sms_messenger.Command.SWITCH_DIALOG_ON
+import ru.gfastg98.sms_messenger.Command.UPDATE_SMS
 import ru.gfastg98.sms_messenger.activites.StartActivity
 import ru.gfastg98.sms_messenger.room.Message
 import ru.gfastg98.sms_messenger.room.User
 import java.io.File
 import javax.inject.Inject
 
-enum class Commands {
+sealed interface Command {
     //GET_USERS, GET_MESSAGES, GET_LAST_MESSAGE,
 
     //INSERT_USER, DELETE_USER, DELETE_USERS,
     //INSERT_MESSAGE, DELETE_MESSAGE, DELETE_MESSAGES,
-    SWITCH_DIALOG_ON, SWITCH_DIALOG_OFF,
+    data object SWITCH_DIALOG_ON : Command
+    data object SWITCH_DIALOG_OFF : Command
 
-    DELETE_LIST_USERS_UPDATE, DELETE_LIST_USERS_PLUS, DELETE_LIST_USERS_MINUS,
-    DELETE_LIST_MESSAGES_UPDATE, DELETE_LIST_MESSAGES_PLUS, DELETE_LIST_MESSAGES_MINUS,
+    data class DELETE_LIST_USERS_UPDATE(val users: List<User>) : Command
+    data class DELETE_LIST_USERS_PLUS(val user: User) : Command
+    data class DELETE_LIST_USERS_MINUS(val user: User) : Command
+    data class DELETE_LIST_MESSAGES_UPDATE(val messages: List<Message>) : Command
+    data class DELETE_LIST_MESSAGES_PLUS(val message: Message) : Command
+    data class DELETE_LIST_MESSAGES_MINUS(val message: Message) : Command
 
-    UPDATE_SMS, SEND_SMS, ADD_USER, GET_CONTACTS,
+    data class UPDATE_SMS(val context: Context) : Command
 
-    INSERT_SMS,
+    data class SEND_SMS(
+        val context: Context,
+        val address: String,
+        val isDigits: Boolean,
+        val message: String
+    ) : Command
 
-    DELETE_THREADS, DELETE_MESSAGES,
+    data class ADD_USER(val user: User) : Command
 
-    SEND_NOTIFICATION,
-    IMPORT_SMS, EXPORT_SMS
+    data class GET_CONTACTS(val context: Context) : Command
+
+    data class INSERT_SMS(
+        val context: Context,
+        val type: Int,
+        val address: String,
+        val message: String
+    ) : Command
+
+    data class DELETE_THREADS(val context: Context) : Command
+    data class DELETE_MESSAGES(val context: Context) : Command
+
+    data class SEND_NOTIFICATION(
+        val context: Context,
+        val address: String,
+        val message: String
+    ) : Command
+
+    data class IMPORT_SMS(val context: Context, val fileUri: Uri) : Command
+    data class EXPORT_SMS(val context: Context, val directory: File) : Command
 }
 
 data class SMSTable(
@@ -59,8 +104,11 @@ class MessengerViewModel @Inject constructor(@ApplicationContext context: Contex
         var instance: MessengerViewModel? = null
     }
 
-    @Inject lateinit var vibrator: Vibrator
-    @Inject lateinit var notificationManager: NotificationManager
+    @Inject
+    lateinit var vibrator: Vibrator
+
+    @Inject
+    lateinit var notificationManager: NotificationManager
 
     private val _isDialog = MutableStateFlow(false)
     val isDialogStateFlow: StateFlow<Boolean>
@@ -85,37 +133,33 @@ class MessengerViewModel @Inject constructor(@ApplicationContext context: Contex
             context.contentResolver
                 .register(Telephony.Sms.CONTENT_URI)
                 .collect {
-                    doCommand<Nothing>(
-                        Commands.UPDATE_SMS,
-                        context
-                    )
+                    onEvent<Unit>(UPDATE_SMS(context))
                 }
         }
 
-        doCommand<Nothing>(
-            Commands.UPDATE_SMS,
-            context
+        onEvent<Unit>(
+            UPDATE_SMS(context = context)
         )
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T> doCommand(command: Commands, vararg data: Any? = arrayOf(null)): T? {
-        when (command) {
+    fun <T> onEvent(event: Command): T {
+        when (event) {
             /*
             ROOM не используется
 
-            Commands.GET_USERS -> return _dao.getUsers() as T
-            Commands.GET_MESSAGES -> return _dao.getMessages(data as Int) as T
-            Commands.GET_LAST_MESSAGE -> return _dao.getLastMessages() as T
+            Command.GET_USERS -> return _dao.getUsers() as T
+            Command.GET_MESSAGES -> return _dao.getMessages(data as Int) as T
+            Command.GET_LAST_MESSAGE -> return _dao.getLastMessages() as T
 
-            Commands.INSERT_USER -> {
+            Command.INSERT_USER -> {
                 if (data is List<*>) {
                     viewModelScope.launch { _dao.insertUser(*(data as List<User>).toTypedArray()) }
                 } else
                     viewModelScope.launch { _dao.insertUser(data as User) }
             }
 
-            Commands.DELETE_USER -> {
+            Command.DELETE_USER -> {
                 if (data is List<*>) {
                     viewModelScope.launch { _dao.deleteUser(*(data as List<User>).toTypedArray()) }
                 } else {
@@ -123,103 +167,104 @@ class MessengerViewModel @Inject constructor(@ApplicationContext context: Contex
                 }
             }
 
-            Commands.INSERT_MESSAGE -> if (data is List<*>)
+            Command.INSERT_MESSAGE -> if (data is List<*>)
                 viewModelScope.launch { _dao.insertMessage(*(data as List<Message>).toTypedArray()) }
             else
                 viewModelScope.launch { _dao.insertMessage(data as Message) }
 
-            Commands.DELETE_MESSAGE -> viewModelScope.launch { _dao.deleteMessage(data as Message) }
-            Commands.DELETE_USERS -> viewModelScope.launch { _dao.deleteAllUsers() }
-            Commands.DELETE_MESSAGES -> viewModelScope.launch { _dao.deleteAllMessages() }*/
+            Command.DELETE_MESSAGE -> viewModelScope.launch { _dao.deleteMessage(data as Message) }
+            Command.DELETE_USERS -> viewModelScope.launch { _dao.deleteAllUsers() }
+            Command.DELETE_MESSAGES -> viewModelScope.launch { _dao.deleteAllMessages() }*/
 
-            Commands.SWITCH_DIALOG_ON -> _isDialog.value = true
-            Commands.SWITCH_DIALOG_OFF -> _isDialog.value = false
+            is SWITCH_DIALOG_ON -> _isDialog.value = true
+            SWITCH_DIALOG_OFF -> _isDialog.value = false
 
-            Commands.DELETE_LIST_USERS_UPDATE -> _deleteUsersListStateFlow.update { data[0] as List<User> }
-            Commands.DELETE_LIST_USERS_PLUS -> _deleteUsersListStateFlow.value += data[0] as User
-            Commands.DELETE_LIST_USERS_MINUS -> _deleteUsersListStateFlow.value -= data[0] as User
-            Commands.DELETE_THREADS -> {
+            is DELETE_LIST_USERS_UPDATE -> _deleteUsersListStateFlow.value = event.users
+            is DELETE_LIST_USERS_PLUS -> _deleteUsersListStateFlow.value += event.user
+            is DELETE_LIST_USERS_MINUS -> _deleteUsersListStateFlow.value -= event.user
+            is DELETE_THREADS -> {
                 for (user in _deleteUsersListStateFlow.value) {
-                    Repository.deleteThreadFromId(data[0] as Context, user.id)
+                    Repository.deleteThreadFromId(event.context, user.id)
                 }
                 _deleteUsersListStateFlow.value = emptyList()
-                //doCommand<Nothing>(Commands.UPDATE_SMS, data)
+                //doCommand<Nothing>(UPDATE_SMS, data)
             }
 
-            Commands.UPDATE_SMS -> {
+            is UPDATE_SMS -> {
                 Log.i(TAG, "doCommand: sms updated")
                 viewModelScope.launch {
-                    _smsTable.value = Repository.refreshSmsInbox(data[0] as Context)
+                    _smsTable.value = Repository.refreshSmsInbox(event.context)
                 }
             }
 
-            Commands.SEND_SMS -> {
-                data as Array<Any>
-                Repository.sendSMS(
-                    data[0] as Context, // Context
-                    data[1] as String, // message
-                    data[2] as String, // address
-                    data[3] as Boolean // isDigits
-                )
-            }
+            is SEND_SMS -> Repository.sendSMS(
+                event.context,
+                event.address,
+                event.isDigits,
+                event.message
+            )
 
-            Commands.GET_CONTACTS -> return Repository.getContactList(data[0] as Context) as T
-            Commands.ADD_USER -> _smsTable.value.users += data[0] as User
+            is GET_CONTACTS -> return Repository.getContactList(event.context) as T
+            is ADD_USER -> _smsTable.value.users += event.user
 
-            Commands.INSERT_SMS -> {
+            is INSERT_SMS -> {
                 Repository.insertSMS(
-                    data[0] as Context,
-                    data[1] as Int,
-                    data[2] as String,
-                    data[3] as String
+                    event.context,
+                    event.type,
+                    event.address,
+                    event.message,
                 )
             }
 
 
-            Commands.DELETE_LIST_MESSAGES_UPDATE -> _deleteMessagesListStateFlow.value = data[0] as List<Message>
-            Commands.DELETE_LIST_MESSAGES_PLUS -> _deleteMessagesListStateFlow.value += data[0] as Message
-            Commands.DELETE_LIST_MESSAGES_MINUS -> _deleteMessagesListStateFlow.value += data[0] as Message
-            Commands.DELETE_MESSAGES -> {
+            is DELETE_LIST_MESSAGES_UPDATE -> _deleteMessagesListStateFlow.value = event.messages
+            is DELETE_LIST_MESSAGES_PLUS -> _deleteMessagesListStateFlow.value += event.message
+            is DELETE_LIST_MESSAGES_MINUS -> _deleteMessagesListStateFlow.value += event.message
+            is DELETE_MESSAGES -> {
 
                 Repository.deleteMessagesByIds(
-                    data[0] as Context,
+                    event.context,
                     *(_deleteMessagesListStateFlow.value).map { m -> m.id }.toLongArray()
                 )
 
                 _deleteMessagesListStateFlow.value = emptyList()
             }
 
-            Commands.SEND_NOTIFICATION -> {
-                val context = data[0] as Context
-                val address = data[1] as String
-                val message = data[2] as String
-
+            is SEND_NOTIFICATION -> {
                 notificationManager.notify(
                     HiltModule.NOTIFICATION_ID,
-                    NotificationCompat.Builder(context, HiltModule.CHANNEL_ID)
+                    NotificationCompat.Builder(event.context, HiltModule.CHANNEL_ID)
                         .setSmallIcon(R.drawable.baseline_message_24)
-                        .setContentTitle(address)
-                        .setContentText(message)
+                        .setContentTitle(event.address)
+                        .setContentText(event.message)
                         .setContentIntent(
                             PendingIntent.getActivity(
-                                context,
+                                event.context,
                                 11,
-                                Intent(context, StartActivity::class.java),
+                                Intent(event.context, StartActivity::class.java),
                                 PendingIntent.FLAG_IMMUTABLE
                             )
                         )
                         .build()
-                    )
+                )
             }
 
-            Commands.IMPORT_SMS -> {
-                Repository.import(data[0] as Context, data[1] as Uri)
+            is IMPORT_SMS -> return Repository.import(
+                context = event.context,
+                destination = event.fileUri
+            ) as T
+
+
+            is EXPORT_SMS -> {
+                return Repository.export(
+                    context = event.context,
+                    destination = event.directory,
+                    table = _smsTable.value
+                ) as T
             }
-            Commands.EXPORT_SMS -> {
-                Repository.export(data[0] as Context, data[1] as File, _smsTable.value)
-            }
+
         }
-        return null
+        return Unit as T
     }
 
     fun vibrate() {
